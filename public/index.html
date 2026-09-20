@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onur AI</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f1117;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      height: 64px;
+      background: #171a23;
+      border-bottom: 1px solid #292d38;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 14px;
+      flex-shrink: 0;
+    }
+
+    #menuButton {
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: white;
+      font-size: 27px;
+      cursor: pointer;
+    }
+
+    #menuButton:active {
+      background: #242936;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 12px 15px;
+      border-radius: 15px;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      line-height: 1.5;
+    }
+
+    .user {
+      align-self: flex-end;
+      background: #2563eb;
+      border-bottom-right-radius: 4px;
+    }
+
+    .ai {
+      align-self: flex-start;
+      background: #242936;
+      border-bottom-left-radius: 4px;
+    }
+
+    #inputArea {
+      display: flex;
+      gap: 8px;
+      padding: 10px;
+      background: #171a23;
+      border-top: 1px solid #292d38;
+    }
+
+    #messageInput {
+      flex: 1;
+      min-width: 0;
+      height: 48px;
+      padding: 0 15px;
+      border: none;
+      outline: none;
+      border-radius: 12px;
+      background: #242936;
+      color: white;
+      font-size: 16px;
+    }
+
+    #sendButton {
+      height: 48px;
+      padding: 0 18px;
+      border: none;
+      border-radius: 12px;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #sendButton:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    /* Arka plan */
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      z-index: 20;
+    }
+
+    #overlay.active {
+      display: block;
+    }
+
+    /* Sol menü */
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 285px;
+      height: 100%;
+      background: #171a23;
+      border-right: 1px solid #292d38;
+      transform: translateX(-100%);
+      transition: transform 0.25s ease;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #sidebar.open {
+      transform: translateX(0);
+    }
+
+    .sidebarTop {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      border-bottom: 1px solid #292d38;
+      flex-shrink: 0;
+    }
+
+    .sidebarTitle {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    #closeButton {
+      width: 42px;
+      height: 42px;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: white;
+      font-size: 25px;
+      cursor: pointer;
+    }
+
+    #closeButton:active {
+      background: #242936;
+    }
+
+    /* Yeni sohbet */
+    #newChatButton {
+      margin: 14px;
+      height: 48px;
+      border: none;
+      border-radius: 11px;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    #newChatButton:active {
+      transform: scale(0.98);
+    }
+
+    /* Sohbet listesi */
+    #chatList {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 10px 15px;
+    }
+
+    .chatItem {
+      width: 100%;
+      min-height: 46px;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: white;
+      text-align: left;
+      padding: 12px;
+      margin-bottom: 4px;
+      cursor: pointer;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: 14px;
+    }
+
+    .chatItem:hover {
+      background: #242936;
+    }
+
+    .chatItem.active {
+      background: #242936;
+    }
+
+    .emptyChats {
+      color: #8f96a8;
+      text-align: center;
+      padding: 20px 10px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 500px) {
+      #sidebar {
+        width: 82%;
+        max-width: 300px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <button id="menuButton" aria-label="Menüyü aç">☰</button>
+    <div class="logo">Onur AI</div>
+  </header>
+
+  <div id="chat"></div>
+
+  <div id="inputArea">
+    <input
+      id="messageInput"
+      type="text"
+      autocomplete="off"
+      placeholder="Mesaj yaz..."
+    >
+
+    <button id="sendButton">Gönder</button>
+  </div>
+
+  <!-- Arka plan -->
+  <div id="overlay"></div>
+
+  <!-- Sol menü -->
+  <aside id="sidebar">
+
+    <div class="sidebarTop">
+      <div class="sidebarTitle">Onur AI</div>
+
+      <button id="closeButton" aria-label="Menüyü kapat">
+        ×
+      </button>
+    </div>
+
+    <!-- Yeni sohbet oluştur -->
+    <button id="newChatButton">
+      ＋ Yeni sohbet
+    </button>
+
+    <!-- Eski sohbetler -->
+    <div id="chatList">
+      <div class="emptyChats">
+        Henüz sohbet yok.
+      </div>
+    </div>
+
+  </aside>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("messageInput");
+    const sendButton = document.getElementById("sendButton");
+
+    const menuButton = document.getElementById("menuButton");
+    const closeButton = document.getElementById("closeButton");
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("overlay");
+    const newChatButton = document.getElementById("newChatButton");
+    const chatList = document.getElementById("chatList");
+
+    const MAX_CHATS = 1000000;
+
+    let chats = [];
+    let currentChat = null;
+    let chatNumber = 0;
+
+    /*
+      Sohbetleri telefonda/tarayıcıda sakla.
+      Sayfayı yenilesen bile sohbetler kalır.
+    */
+    function saveChats() {
+      try {
+        localStorage.setItem(
+          "onurAI_chats",
+          JSON.stringify(chats)
+        );
+
+        localStorage.setItem(
+          "onurAI_chatNumber",
+          String(chatNumber)
+        );
+      } catch (error) {
+        console.error("Sohbetler kaydedilemedi:", error);
+      }
+    }
+
+    /*
+      Daha önce kayıtlı sohbetleri yükle
+    */
+    function loadChats() {
+      try {
+        const savedChats =
+          localStorage.getItem("onurAI_chats");
+
+        const savedNumber =
+          localStorage.getItem("onurAI_chatNumber");
+
+        if (savedChats) {
+          const parsed = JSON.parse(savedChats);
+
+          if (Array.isArray(parsed)) {
+            chats = parsed;
+          }
+        }
+
+        if (savedNumber) {
+          chatNumber = Number(savedNumber) || 0;
+        }
+
+        /*
+          Sohbet numarası kayıtlı sohbetlerden küçükse
+          tekrar numara çakışmasını önle.
+        */
+        if (chats.length > 0) {
+          const highestNumber = chats.reduce(
+            (highest, item) => {
+              const match =
+                String(item.title).match(/^Sohbet (\d+)$/);
+
+              if (!match) {
+                return highest;
+              }
+
+              return Math.max(
+                highest,
+                Number(match[1])
+              );
+            },
+            0
+          );
+
+          chatNumber = Math.max(
+            chatNumber,
+            highestNumber
+          );
+        }
+
+      } catch (error) {
+        console.error(
+          "Sohbetler yüklenemedi:",
+          error
+        );
+
+        chats = [];
+        chatNumber = 0;
+      }
+    }
+
+    /*
+      Yeni sohbet oluştur
+    */
+    function createChat() {
+
+      if (chatNumber >= MAX_CHATS) {
+        alert(
+          "Sohbet sınırına ulaşıldı: 1.000.000 sohbet."
+        );
+        return;
+      }
+
+      chatNumber++;
+
+      const newChat = {
+        id:
+          Date.now().toString() +
+          Math.random().toString(36).substring(2),
+
+        title:
+          "Sohbet " + chatNumber,
+
+        messages: []
+      };
+
+      chats.unshift(newChat);
+
+      currentChat = newChat;
+
+      saveChats();
+
+      renderChatList();
+      renderMessages();
+
+      closeSidebar();
+
+      input.focus();
+    }
+
+    /*
+      Sohbet listesini oluştur
+    */
+    function renderChatList() {
+
+      chatList.innerHTML = "";
+
+      if (chats.length === 0) {
+
+        const empty =
+          document.createElement("div");
+
+        empty.className = "emptyChats";
+
+        empty.textContent =
+          "Henüz sohbet yok.";
+
+        chatList.appendChild(empty);
+
+        return;
+      }
+
+      chats.forEach((item) => {
+
+        const button =
+          document.createElement("button");
+
+        button.className = "chatItem";
+
+        if (
+          currentChat &&
+          currentChat.id === item.id
+        ) {
+          button.classList.add("active");
+        }
+
+        button.textContent = item.title;
+
+        button.addEventListener(
+          "click",
+          function() {
+
+            currentChat = item;
+
+            renderMessages();
+            renderChatList();
+
+            closeSidebar();
+
+            input.focus();
+          }
+        );
+
+        chatList.appendChild(button);
+      });
+    }
+
+    /*
+      Seçili sohbetin mesajlarını göster
+    */
+    function renderMessages() {
+
+      chat.innerHTML = "";
+
+      if (!currentChat) {
+        return;
+      }
+
+      currentChat.messages.forEach(
+        (message) => {
+
+          addMessage(
+            message.text,
+            message.type,
+            false
+          );
+
+        }
+      );
+
+      chat.scrollTop =
+        chat.scrollHeight;
+    }
+
+    /*
+      Mesaj ekle
+    */
+    function addMessage(
+      text,
+      type,
+      save = true
+    ) {
+
+      const message =
+        document.createElement("div");
+
+      message.className =
+        "message " + type;
+
+      message.textContent = text;
+
+      chat.appendChild(message);
+
+      chat.scrollTop =
+        chat.scrollHeight;
+
+      if (
+        save &&
+        currentChat
+      ) {
+
+        currentChat.messages.push({
+          text: text,
+          type: type
+        });
+
+        saveChats();
+      }
+    }
+
+    /*
+      Gemini / Onur AI'ye mesaj gönder
+    */
+    async function sendMessage() {
+
+      const text =
+        input.value.trim();
+
+      if (
+        !text ||
+        sendButton.disabled
+      ) {
+        return;
+      }
+
+      /*
+        Hiç sohbet yoksa otomatik olarak
+        yeni sohbet oluştur.
+      */
+      if (!currentChat) {
+        createChat();
+      }
+
+      addMessage(
+        text,
+        "user"
+      );
+
+      input.value = "";
+
+      sendButton.disabled = true;
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/chat",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body: JSON.stringify({
+                message: text
+              })
+            }
+          );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+            "Sunucu hatası."
+          );
+        }
+
+        addMessage(
+          data.reply ||
+          "Onur AI cevap vermedi.",
+          "ai"
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Onur AI hatası:",
+          error
+        );
+
+        addMessage(
+          "Onur AI bağlantısında hata oluştu.",
+          "ai"
+        );
+      }
+
+      sendButton.disabled = false;
+
+      input.focus();
+    }
+
+    /*
+      Sol menüyü aç
+    */
+    function openSidebar() {
+
+      sidebar.classList.add("open");
+
+      overlay.classList.add("active");
+
+      renderChatList();
+    }
+
+    /*
+      Sol menüyü kapat
+    */
+    function closeSidebar() {
+
+      sidebar.classList.remove("open");
+
+      overlay.classList.remove("active");
+    }
+
+    /*
+      Menü butonu
+    */
+    menuButton.addEventListener(
+      "click",
+      openSidebar
+    );
+
+    /*
+      Kapatma butonu
+    */
+    closeButton.addEventListener(
+      "click",
+      closeSidebar
+    );
+
+    /*
+      Dışarı dokununca menüyü kapat
+    */
+    overlay.addEventListener(
+      "click",
+      closeSidebar
+    );
+
+    /*
+      Yeni sohbet
+    */
+    newChatButton.addEventListener(
+      "click",
+      createChat
+    );
+
+    /*
+      Gönder
+    */
+    sendButton.addEventListener(
+      "click",
+      sendMessage
+    );
+
+    /*
+      Enter ile gönder
+    */
+    input.addEventListener(
+      "keydown",
+      function(event) {
+
+        if (event.key === "Enter") {
+          sendMessage();
+        }
+
+      }
+    );
+
+    /*
+      Başlangıç
+    */
+    loadChats();
+
+    /*
+      Daha önce sohbet varsa son oluşturulan
+      sohbeti aç.
+    */
+    if (chats.length > 0) {
+
+      currentChat = chats[0];
+
+      renderMessages();
+
+    }
+
+    renderChatList();
+
+    input.focus();
+  </script>
+
+</body>
+  </html>
