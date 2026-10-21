@@ -6,178 +6,95 @@ import { fileURLToPath } from "node:url";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const API_KEY = process.env.GEMINI_API_KEY;
+const ai = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+  : null;
 
 const CHAT_MODEL = "gemini-3.1-flash";
-const IMAGE_MODEL = "gemini-3.1-flash-image";
-
-if (!API_KEY) {
-  throw new Error("GEMINI_API_KEY ortam değişkeni ayarlanmamış.");
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "2mb" }));
 app.use(express.static(path.join(__dirname, "public")));
-
-const readyReplies = [
-  {
-    patterns: [
-      /seni kim yaptı/i,
-      /seni kim yarattı/i,
-      /geliştiricin kim/i,
-      /yapımcın kim/i,
-      /kim geliştirdi seni/i
-    ],
-    reply: "Beni Breynot.Editzz yaptı! 💙"
-  },
-  {
-    patterns: [/^(merhaba|selam|sa|hey|hi|hello)\b/i],
-    reply: "Merhaba! Ben Onur AI. 😊"
-  },
-  {
-    patterns: [/nasılsın/i, /naber/i, /ne haber/i],
-    reply: "İyiyim, teşekkür ederim! Sen nasılsın? 😊"
-  },
-  {
-    patterns: [/adın ne/i, /sen kimsin/i, /^kimsin/i],
-    reply: "Ben Onur AI, sana yardımcı olmak için buradayım. 🤖"
-  },
-  {
-    patterns: [/hangi modelsin/i, /modelin ne/i],
-    reply: "Sohbet için Gemini 3.1 Flash kullanıyorum."
-  },
-  {
-    patterns: [/ne yapabilirsin/i, /özelliklerin neler/i],
-    reply: "Soruları cevaplayabilir, kod yazabilir, fikir üretebilir ve @gorselolustur komutuyla görsel oluşturmayı deneyebilirim."
-  },
-  {
-    patterns: [/günaydın/i],
-    reply: "Günaydın! ☀️"
-  },
-  {
-    patterns: [/iyi geceler/i],
-    reply: "İyi geceler! 🌙"
-  },
-  {
-    patterns: [/iyi akşamlar/i],
-    reply: "İyi akşamlar! 😊"
-  },
-  {
-    patterns: [/teşekkürler/i, /teşekkür ederim/i, /sağ ol/i],
-    reply: "Rica ederim! 😊"
-  },
-  {
-    patterns: [/seni seviyorum/i],
-    reply: "Çok naziksin! 💙 Sana yardımcı olmak için buradayım."
-  },
-  {
-    patterns: [/şaka yap/i, /bir şaka anlat/i],
-    reply: "Bilgisayar neden doktora gitmiş? Çünkü virüs kapmış! 😂"
-  },
-  {
-    patterns: [/bilmece sor/i],
-    reply: "Bilmece: Dört ayağı var ama yürüyemez. Nedir? 🤔"
-  },
-  {
-    patterns: [/görsel nasıl oluştururum/i, /resim nasıl oluştururum/i],
-    reply: "Mesajına @gorselolustur yazıp ardından istediğin görseli tarif et. Örnek: @gorselolustur uzayda yürüyen bir kedi"
-  },
-  {
-    patterns: [/insan mısın/i, /gerçek misin/i],
-    reply: "Ben bir yapay zekâ asistanıyım, gerçek bir insan değilim."
-  },
-  {
-    patterns: [/yardım/i, /komutlar neler/i],
-    reply: "Normal şekilde mesaj yazabilirsin. Görsel oluşturmak için @gorselolustur komutunu kullan."
-  },
-  {
-    patterns: [/^test$/i, /^ping$/i],
-    reply: "Onur AI çalışıyor! ✅"
-  }
-];
-
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
-});
 
 app.post("/api/chat", async (req, res) => {
   try {
-    const message = req.body?.message;
+    if (!ai) throw new Error("GEMINI_API_KEY ayarlanmamış.");
 
-    if (typeof message !== "string" || !message.trim()) {
-      return res.status(400).json({ error: "Mesaj boş olamaz." });
-    }
+    const message = String(req.body?.message || "").trim();
+    if (!message) return res.status(400).json({ error: "Mesaj boş." });
 
-    const text = message.trim();
+    const replies = [
+      [/seni kim yaptı|geliştiricin kim|yapımcın kim/i, "Beni Breynot.Editzz yaptı! 💙"],
+      [/^(merhaba|selam|sa|hey)\b/i, "Merhaba! 😊"],
+      [/nasılsın|naber/i, "İyiyim, teşekkür ederim! Sen nasılsın? 😊"]
+    ];
 
-    for (const item of readyReplies) {
-      if (item.patterns.some(pattern => pattern.test(text))) {
-        return res.json({
-          text: item.reply,
-          source: "ready-reply"
-        });
-      }
+    for (const [pattern, reply] of replies) {
+      if (pattern.test(message)) return res.json({ text: reply });
     }
 
     const result = await ai.models.generateContent({
       model: CHAT_MODEL,
-      contents: text
+      contents: message
     });
 
-    res.json({
-      text: result.text || "Yanıt oluşturulamadı.",
-      source: "gemini"
-    });
+    res.json({ text: result.text || "Yanıt oluşturulamadı." });
   } catch (error) {
-    console.error("Sohbet hatası:", error);
-    res.status(500).json({
-      error: error.message || "Sohbet yanıtı oluşturulamadı."
-    });
+    console.error(error);
+    res.status(500).json({ error: "Yanıt oluşturulamadı." });
   }
 });
 
-app.post("/api/generate-image", async (req, res) => {
+app.post("/api/drawing-plan", async (req, res) => {
   try {
-    const prompt = req.body?.prompt;
+    if (!ai) throw new Error("GEMINI_API_KEY ayarlanmamış.");
 
-    if (typeof prompt !== "string" || !prompt.trim()) {
-      return res.status(400).json({
-        error: "Görsel açıklaması boş olamaz."
-      });
+    const prompt = String(req.body?.prompt || "").trim();
+    if (!prompt) return res.status(400).json({ error: "Tarif boş." });
+    if (prompt.length > 1000) {
+      return res.status(400).json({ error: "Tarif çok uzun." });
     }
+
+    const instruction = `
+Kullanıcı tarifi: ${JSON.stringify(prompt)}
+
+Tarife uygun, renkli ve ayrıntılı 512x512 illüstrasyon çizim planı hazırla.
+Yalnızca geçerli JSON döndür, açıklama veya Markdown yazma.
+Biçim:
+{
+  "background":"#ffffff",
+  "shapes":[
+    {"type":"ellipse","cx":256,"cy":280,"rx":100,"ry":65,"fill":"#ffaa33","stroke":"#222222","strokeWidth":3},
+    {"type":"circle","cx":256,"cy":180,"r":55,"fill":"#ffaa33","stroke":"#222222","strokeWidth":3},
+    {"type":"path","d":"M 200 200 Q 150 160 175 130","fill":"none","stroke":"#222222","strokeWidth":4}
+  ]
+}
+15-70 şekil üretmeye çalış. Büyük şekillerden başlayıp küçük ayrıntılara geç.
+Sadece circle, ellipse, rect, line, polygon ve path şekillerini kullan.
+Koordinatları 0-512 arasında tut. Renkleri hex biçiminde ver.
+Path içinde sadece M L H V C S Q T Z komutlarına izin var.
+HTML, script veya başka SVG etiketleri üretme.
+`;
 
     const result = await ai.models.generateContent({
-      model: IMAGE_MODEL,
-      contents: prompt.trim(),
-      config: {
-        responseModalities: ["TEXT", "IMAGE"]
-      }
+      model: CHAT_MODEL,
+      contents: instruction,
+      config: { responseMimeType: "application/json" }
     });
 
-    for (const candidate of result.candidates || []) {
-      for (const part of candidate.content?.parts || []) {
-        if (part.inlineData?.data && part.inlineData?.mimeType) {
-          return res.json({
-            image: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`,
-            text: result.text || ""
-          });
-        }
-      }
-    }
+    const plan = JSON.parse(result.text || "{}");
+    if (!Array.isArray(plan.shapes)) throw new Error("Geçersiz plan.");
 
-    res.status(502).json({
-      error: "Model görsel döndürmedi."
+    res.json({
+      plan: {
+        background: plan.background,
+        shapes: plan.shapes.slice(0, 100)
+      }
     });
   } catch (error) {
-    console.error("Görsel üretme hatası:", error);
-    res.status(500).json({
-      error: error.message || "Görsel oluşturulamadı."
-    });
+    console.error(error);
+    res.status(500).json({ error: "Görsel oluşturulamadı." });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Onur AI çalışıyor: ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Onur AI: ${PORT}`));
