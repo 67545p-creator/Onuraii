@@ -3,146 +3,166 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Onur AI</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;height:100dvh;display:flex;flex-direction:column;background:#101114;color:#f5f5f5;font-family:Arial,sans-serif}
-header{padding:16px;border-bottom:1px solid #303036;font-size:20px;font-weight:bold}
+header{padding:16px;border-bottom:1px solid #303036;font-weight:bold;font-size:20px}
 #chat{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
 .message{max-width:90%;padding:12px 15px;border-radius:14px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
 .user{align-self:flex-end;background:#343640}
 .assistant{align-self:flex-start;background:#202127}
-.message img{display:block;max-width:100%;height:auto;margin-top:10px;border-radius:10px}
-.download{display:inline-block;margin-top:10px;color:#b9c9ff}
+.message img{display:block;width:100%;max-width:512px;height:auto;margin-top:8px;border-radius:10px}
+.download{display:block;margin-top:10px;color:#b9c9ff}
 #composer{display:flex;gap:8px;padding:12px;border-top:1px solid #303036}
-input{flex:1;min-width:0;padding:13px;border:1px solid #41424b;border-radius:12px;background:#202127;color:white;font-size:16px;outline:none}
-button{border:0;border-radius:12px;padding:12px 15px;background:#5865f2;color:white;font-size:15px;cursor:pointer}
-button:disabled{opacity:.6;cursor:wait}
+input{flex:1;min-width:0;padding:13px;border:1px solid #41424b;border-radius:12px;background:#202127;color:white;font-size:16px}
+button{border:0;border-radius:12px;padding:12px 15px;background:#5865f2;color:white;cursor:pointer}
 #plusWrap{position:relative}
 #plusButton{background:#30313a;font-size:22px}
-#menu{display:none;position:absolute;bottom:54px;left:0;min-width:190px;padding:6px;background:#262730;border:1px solid #41424b;border-radius:12px}
+#menu{display:none;position:absolute;bottom:54px;left:0;min-width:180px;padding:6px;background:#262730;border-radius:12px}
 #menu button{width:100%;text-align:left;background:transparent}
 .status{opacity:.8;font-style:italic}
 </style>
 </head>
 <body>
 <header>Onur AI</header>
-
-<main id="chat" aria-live="polite">
-<div class="message assistant">Merhaba! Ben Onur AI. Sana nasıl yardımcı olabilirim?</div>
-</main>
-
+<main id="chat" aria-live="polite"></main>
 <form id="composer">
 <div id="plusWrap">
-<button id="plusButton" type="button" aria-label="Menüyü aç">+</button>
-<div id="menu">
-<button id="imageCommand" type="button">@gorselolustur</button>
-</div>
+<button id="plusButton" type="button">+</button>
+<div id="menu"><button id="imageCommand" type="button">@gorselolustur</button></div>
 </div>
 <input id="messageInput" placeholder="Mesajını yaz..." autocomplete="off" required>
 <button id="sendButton" type="submit">Gönder</button>
 </form>
-
 <script>
-const chat = document.getElementById("chat");
-const form = document.getElementById("composer");
-const input = document.getElementById("messageInput");
-const sendButton = document.getElementById("sendButton");
-const menu = document.getElementById("menu");
+const chat=document.getElementById("chat");
+const form=document.getElementById("composer");
+const input=document.getElementById("messageInput");
+const sendButton=document.getElementById("sendButton");
+const menu=document.getElementById("menu");
 
-document.getElementById("plusButton").addEventListener("click", () => {
-  menu.style.display = menu.style.display === "block" ? "none" : "block";
-});
-
-document.getElementById("imageCommand").addEventListener("click", () => {
-  input.value = "@gorselolustur ";
+document.getElementById("plusButton").onclick=()=>{
+  menu.style.display=menu.style.display==="block"?"none":"block";
+};
+document.getElementById("imageCommand").onclick=()=>{
+  input.value="@gorselolustur ";
   input.focus();
-  menu.style.display = "none";
-});
+  menu.style.display="none";
+};
 
-function addMessage(text, role = "assistant") {
-  const el = document.createElement("div");
-  el.className = `message ${role}`;
-  el.textContent = text;
+function addMessage(text,role="assistant"){
+  const el=document.createElement("div");
+  el.className="message "+role;
+  el.textContent=text;
   chat.appendChild(el);
-  chat.scrollTop = chat.scrollHeight;
+  chat.scrollTop=chat.scrollHeight;
   return el;
 }
-
-async function sendMessage(message) {
-  sendButton.disabled = true;
-  input.disabled = true;
-
-  try {
-    if (/@gorselolustur\b/i.test(message)) {
-      const prompt = message.replace(/@gorselolustur\b/i, "").trim();
-      addMessage(message, "user");
-
-      if (!prompt) {
-        addMessage("Görsel açıklamasını yaz.");
-        return;
-      }
-
-      const status = addMessage("Görsel oluşturuluyor...");
-      status.classList.add("status");
-
-      const response = await fetch("/api/generate-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt })
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Görsel oluşturulamadı.");
-
-      status.classList.remove("status");
-      status.textContent = data.text || "Görsel oluşturuldu.";
-
-      const img = document.createElement("img");
-      img.src = data.image;
-      img.alt = "Oluşturulan görsel";
-      status.appendChild(img);
-
-      const link = document.createElement("a");
-      link.className = "download";
-      link.href = data.image;
-      link.download = "onur-ai-gorsel.png";
-      link.textContent = "Görseli indir";
-      status.appendChild(link);
-    } else {
-      addMessage(message, "user");
-
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message })
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Sohbet başarısız.");
-
-      addMessage(data.text || "Yanıt alınamadı.");
+function num(v,max=512){
+  const n=Number(v);
+  return Number.isFinite(n)?Math.max(0,Math.min(max,n)):0;
+}
+function color(v,fallback="#333333"){
+  return typeof v==="string"&&/^#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?$/.test(v)?v:fallback;
+}
+function renderShape(s){
+  const fill=s.fill==="none"?"none":color(s.fill,"#dddddd");
+  const stroke=s.stroke==="none"?"none":color(s.stroke);
+  const sw=num(s.strokeWidth,30);
+  const common=`fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"`;
+  switch(s.type){
+    case "circle":return `<circle cx="${num(s.cx)}" cy="${num(s.cy)}" r="${num(s.r)}" ${common}/>`;
+    case "ellipse":return `<ellipse cx="${num(s.cx)}" cy="${num(s.cy)}" rx="${num(s.rx)}" ry="${num(s.ry)}" ${common}/>`;
+    case "rect":return `<rect x="${num(s.x)}" y="${num(s.y)}" width="${num(s.width)}" height="${num(s.height)}" rx="${num(s.rx,100)}" ${common}/>`;
+    case "line":return `<line x1="${num(s.x1)}" y1="${num(s.y1)}" x2="${num(s.x2)}" y2="${num(s.y2)}" stroke="${stroke}" stroke-width="${sw}"/>`;
+    case "polygon":{
+      if(typeof s.points!=="string"||s.points.length>3000||!/^[0-9+.,\s-]+$/.test(s.points))return "";
+      return `<polygon points="${s.points}" ${common}/>`;
     }
-  } catch (error) {
-    addMessage("Hata: " + error.message);
-  } finally {
-    sendButton.disabled = false;
-    input.disabled = false;
-    input.focus();
-    chat.scrollTop = chat.scrollHeight;
+    case "path":{
+      if(typeof s.d!=="string"||s.d.length>4000||!/^[0-9MmLlHhVvCcSsQqTtZzEe+.,\s-]+$/.test(s.d))return "";
+      return `<path d="${s.d}" ${common}/>`;
+    }
+    default:return "";
   }
 }
-
-form.addEventListener("submit", async event => {
-  event.preventDefault();
-  const message = input.value.trim();
-  if (!message) return;
-
-  input.value = "";
-  menu.style.display = "none";
+async function planToPng(plan){
+  const shapes=plan.shapes.slice(0,100).map(renderShape).join("");
+  const bg=color(plan.background,"#ffffff");
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" fill="${bg}"/>${shapes}</svg>`;
+  const url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));
+  try{
+    const img=new Image();
+    img.src=url;
+    await img.decode();
+    const canvas=document.createElement("canvas");
+    canvas.width=512;canvas.height=512;
+    canvas.getContext("2d").drawImage(img,0,0);
+    return canvas.toDataURL("image/png");
+  }finally{URL.revokeObjectURL(url);}
+}
+async function makeImage(prompt){
+  const r=await fetch("/api/drawing-plan",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({prompt})
+  });
+  const data=await r.json();
+  if(!r.ok)throw new Error(data.error||"Görsel oluşturulamadı.");
+  return planToPng(data.plan);
+}
+function displayImage(container,src){
+  const img=document.createElement("img");
+  img.src=src;
+  img.alt="Oluşturulan görsel";
+  container.appendChild(img);
+  const a=document.createElement("a");
+  a.className="download";
+  a.href=src;
+  a.download="onur-ai-gorsel.png";
+  a.textContent="PNG indir";
+  container.appendChild(a);
+}
+async function sendMessage(message){
+  sendButton.disabled=true;input.disabled=true;
+  try{
+    const match=message.match(/@gorselolustur\b/i);
+    if(match){
+      const prompt=message.replace(/@gorselolustur\b/i,"").trim();
+      addMessage(message,"user");
+      if(!prompt){addMessage("Bir görsel tarifi yaz.");return;}
+      const status=addMessage("Görsel oluşturuluyor...");
+      status.classList.add("status");
+      const png=await makeImage(prompt);
+      status.classList.remove("status");
+      status.textContent="";
+      displayImage(status,png);
+    }else{
+      addMessage(message,"user");
+      const r=await fetch("/api/chat",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({message})
+      });
+      const data=await r.json();
+      if(!r.ok)throw new Error(data.error||"Yanıt alınamadı.");
+      addMessage(data.text||"Yanıt alınamadı.");
+    }
+  }catch(e){addMessage("Hata: "+e.message);}
+  finally{
+    sendButton.disabled=false;input.disabled=false;input.focus();
+    chat.scrollTop=chat.scrollHeight;
+  }
+}
+form.onsubmit=async e=>{
+  e.preventDefault();
+  const message=input.value.trim();
+  if(!message)return;
+  input.value="";menu.style.display="none";
   await sendMessage(message);
-});
+};
 </script>
 </body>
 </html>
