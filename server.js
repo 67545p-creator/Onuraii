@@ -12,10 +12,10 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
 const CHAT_MODEL =
-  process.env.GEMINI_CHAT_MODEL || "gemini-2.5-flash";
+  process.env.GEMINI_CHAT_MODEL || gemini-3.5-flash-lite";
 
 const IMAGE_MODEL =
-  process.env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image";
+  process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-lite-image";
 
 if (!process.env.GEMINI_API_KEY) {
   console.error("GEMINI_API_KEY eksik.");
