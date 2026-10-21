@@ -6,11 +6,13 @@ import { fileURLToPath } from "node:url";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
 const ai = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
-const CHAT_MODEL = "gemini-3.1-flash-lite";
+const CHAT_MODEL = "gemini-3.5-flash-lite";
+const DRAWING_MODEL = "gemini-3.5-flash-lite";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 app.use(express.json({ limit: "110mb" }));
@@ -18,10 +20,24 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.post("/api/chat", async (req, res) => {
   try {
-    if (!ai) throw new Error("GEMINI_API_KEY ayarlanmamış.");
+    if (!ai) {
+      return res.status(500).json({ error: "GEMINI_API_KEY ayarlanmamış." });
+    }
 
     const message = String(req.body?.message || "").trim();
-    if (!message) return res.status(400).json({ error: "Mesaj boş." });
+
+    if (!message) {
+      return res.status(400).json({ error: "Mesaj boş." });
+    }
+
+    const imageMatch = message.match(/^@gorselolustur\s+([\s\S]+)/i);
+
+    if (imageMatch) {
+      return res.json({
+        action: "generate_image",
+        prompt: imageMatch[1].trim()
+      });
+    }
 
     const replies = [
       [/seni kim yaptı|geliştiricin kim|yapımcın kim/i, "Beni Breynot.Editzz yaptı! 💙"],
@@ -30,7 +46,9 @@ app.post("/api/chat", async (req, res) => {
     ];
 
     for (const [pattern, reply] of replies) {
-      if (pattern.test(message)) return res.json({ text: reply });
+      if (pattern.test(message)) {
+        return res.json({ text: reply });
+      }
     }
 
     const result = await ai.models.generateContent({
@@ -38,19 +56,27 @@ app.post("/api/chat", async (req, res) => {
       contents: message
     });
 
-    res.json({ text: result.text || "Yanıt oluşturulamadı." });
+    return res.json({
+      text: result.text || "Yanıt oluşturulamadı."
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Yanıt oluşturulamadı." });
+    return res.status(500).json({ error: "Yanıt oluşturulamadı." });
   }
 });
 
 app.post("/api/drawing-plan", async (req, res) => {
   try {
-    if (!ai) throw new Error("GEMINI_API_KEY ayarlanmamış.");
+    if (!ai) {
+      return res.status(500).json({ error: "GEMINI_API_KEY ayarlanmamış." });
+    }
 
     const prompt = String(req.body?.prompt || "").trim();
-    if (!prompt) return res.status(400).json({ error: "Tarif boş." });
+
+    if (!prompt) {
+      return res.status(400).json({ error: "Tarif boş." });
+    }
+
     if (prompt.length > 1000) {
       return res.status(400).json({ error: "Tarif çok uzun." });
     }
@@ -62,8 +88,8 @@ Tarife uygun, renkli ve ayrıntılı 512x512 illüstrasyon çizim planı hazırl
 Yalnızca geçerli JSON döndür, açıklama veya Markdown yazma.
 Biçim:
 {
-  "background":"#ffffff",
-  "shapes":[
+  "background": "#ffffff",
+  "shapes": [
     {"type":"ellipse","cx":256,"cy":280,"rx":100,"ry":65,"fill":"#ffaa33","stroke":"#222222","strokeWidth":3},
     {"type":"circle","cx":256,"cy":180,"r":55,"fill":"#ffaa33","stroke":"#222222","strokeWidth":3},
     {"type":"path","d":"M 200 200 Q 150 160 175 130","fill":"none","stroke":"#222222","strokeWidth":4}
@@ -77,24 +103,46 @@ HTML, script veya başka SVG etiketleri üretme.
 `;
 
     const result = await ai.models.generateContent({
-      model: CHAT_MODEL,
+      model: DRAWING_MODEL,
       contents: instruction,
       config: { responseMimeType: "application/json" }
     });
 
     const plan = JSON.parse(result.text || "{}");
-    if (!Array.isArray(plan.shapes)) throw new Error("Geçersiz plan.");
 
-    res.json({
+    if (!Array.isArray(plan.shapes)) {
+      throw new Error("Geçersiz plan.");
+    }
+
+    const allowedTypes = new Set([
+      "circle",
+      "ellipse",
+      "rect",
+      "line",
+      "polygon",
+      "path"
+    ]);
+
+    const shapes = plan.shapes
+      .filter(shape => shape && allowedTypes.has(shape.type))
+      .slice(0, 100);
+
+    return res.json({
       plan: {
-        background: plan.background,
-        shapes: plan.shapes.slice(0, 100)
+        background:
+          typeof plan.background === "string" &&
+          /^#[0-9a-fA-F]{6}$/.test(plan.background)
+            ? plan.background
+            : "#ffffff",
+        shapes
       }
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Görsel oluşturulamadı." });
+    return res.status(500).json({ error: "Görsel oluşturulamadı." });
   }
 });
 
-app.listen(PORT, () => console.log(`Onur AI: ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Onur AI: ${PORT}`);
+});
