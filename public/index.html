@@ -3,595 +3,500 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101114">
 <title>Onur AI</title>
-
 <style>
-:root {
-  color-scheme: dark;
-  --bg: #101114;
-  --panel: #18191e;
-  --panel2: #222329;
-  --text: #f5f5f7;
-  --muted: #a4a5ae;
-  --accent: #a78bfa;
-  --border: #303138;
-}
-* { box-sizing: border-box; }
-html, body {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-}
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: Inter, system-ui, -apple-system, sans-serif;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-button, textarea, select { font: inherit; }
-button { cursor: pointer; }
-header {
-  height: 62px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 17px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(16,17,20,.96);
-}
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  font-size: 18px;
-  font-weight: 750;
-}
-.logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg,#a78bfa,#6366f1);
-  color: white;
-  font-weight: 900;
-}
-.icon-button {
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--border);
-  border-radius: 13px;
-  background: var(--panel);
-  color: white;
-  font-size: 20px;
-}
-#chat {
-  flex: 1;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 22px 16px 30px;
-}
-.messages {
-  width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 23px;
-}
-.welcome {
-  margin: auto;
-  padding: 45px 10px;
-  text-align: center;
-}
-.welcome-logo {
-  width: 70px;
-  height: 70px;
-  margin: 0 auto 22px;
-  border-radius: 23px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg,#a78bfa,#6366f1);
-  font-size: 35px;
-  font-weight: 900;
-}
-.welcome h1 {
-  margin: 0 0 10px;
-  font-size: clamp(27px,6vw,38px);
-  letter-spacing: -1px;
-}
-.welcome p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 15px;
-}
-.message {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  animation: appear .18s ease-out;
-}
-@keyframes appear {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  font-size: 15px;
-  font-weight: 800;
-  background: var(--panel2);
-}
-.message.assistant .avatar {
-  background: linear-gradient(135deg,#a78bfa,#6366f1);
-}
-.message-content {
-  min-width: 0;
-  flex: 1;
-  padding-top: 5px;
-  line-height: 1.65;
-  overflow-wrap: anywhere;
-}
-.message-content p { margin: 0 0 10px; }
-.message-content p:last-child { margin-bottom: 0; }
-.message.user .message-content {
-  background: #25262d;
-  border: 1px solid #303138;
-  border-radius: 17px;
-  padding: 11px 14px;
-  flex: initial;
-  max-width: 90%;
-}
-.message.user { justify-content: flex-end; }
-.message.user .avatar { display: none; }
-.message.user .message-content { order: -1; }
-.message-content pre {
-  background: #0b0c0f;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px;
-  overflow-x: auto;
-  white-space: pre;
-}
-.message-content code {
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: .9em;
-}
-.message-content img {
-  display: block;
-  width: 100%;
-  max-width: 600px;
-  border-radius: 14px;
-  margin-top: 12px;
-}
-.image-actions {
-  display: flex;
-  gap: 9px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
-.small-button {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 12px;
-  background: var(--panel);
-  color: var(--text);
-}
-.composer-wrap {
-  flex-shrink: 0;
-  padding: 10px 14px calc(13px + env(safe-area-inset-bottom));
-  background: linear-gradient(transparent,var(--bg) 15%);
-}
-.composer {
-  max-width: 800px;
-  margin: 0 auto;
-  border: 1px solid #393a43;
-  border-radius: 23px;
-  background: #1c1d22;
-  padding: 10px;
-  box-shadow: 0 8px 35px #0002;
-}
-#prompt {
-  width: 100%;
-  min-height: 42px;
-  max-height: 160px;
-  resize: none;
-  border: 0;
-  outline: 0;
-  color: white;
-  background: transparent;
-  padding: 8px 8px 5px;
-  font-size: 16px;
-  line-height: 1.5;
-}
-#prompt::placeholder { color: #999aa5; }
-.composer-bottom {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-top: 5px;
-}
-#style {
-  min-width: 0;
-  max-width: 155px;
-  background: #292a31;
-  border: 1px solid #3b3c45;
-  border-radius: 12px;
-  color: white;
-  padding: 9px 8px;
-  outline: 0;
-  font-size: 13px;
-}
-.spacer { flex: 1; }
-#send {
-  height: 42px;
-  min-width: 44px;
-  border: 0;
-  border-radius: 14px;
-  padding: 0 15px;
-  background: #f5f5f7;
-  color: #17171a;
-  font-size: 20px;
-  font-weight: 800;
-}
-#send:disabled { opacity: .5; cursor: default; }
-#newChat { font-size: 19px; }
-@media (min-width: 700px) {
-  #chat { padding-top: 30px; }
-  .composer-wrap { padding-left: 22px; padding-right: 22px; }
+*{box-sizing:border-box}
+:root{color-scheme:dark;--bg:#101114;--panel:#18191e;--panel2:#23242b;--border:#303139;--text:#f5f5f7;--muted:#a6a7b0;--accent:#a78bfa}
+html,body{margin:0;width:100%;height:100%;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text)}
+body{display:flex;overflow:hidden}
+button,textarea,select{font:inherit}
+button{cursor:pointer}
+.sidebar{width:265px;flex-shrink:0;background:#15161a;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:13px;gap:12px}
+.side-top{display:flex;align-items:center;justify-content:space-between;padding:5px 3px 13px}
+.brand{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:750}
+.logo{width:35px;height:35px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#a78bfa,#6366f1);font-weight:900}
+.new-chat{display:flex;align-items:center;gap:10px;border:1px solid var(--border);background:var(--panel);color:white;border-radius:12px;padding:12px;text-align:left}
+.new-chat:hover,.history-item:hover{background:#272830}
+.history-title{font-size:12px;color:var(--muted);padding:8px 5px 2px}
+.history{display:flex;flex-direction:column;gap:4px;overflow:auto}
+.history-item{display:flex;align-items:center;gap:8px;border:0;border-radius:9px;padding:10px;background:transparent;color:#eee;text-align:left;overflow:hidden}
+.history-item span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-item.active{background:#292a32}
+.side-bottom{margin-top:auto;border-top:1px solid var(--border);padding-top:12px;font-size:13px;color:var(--muted)}
+.main{min-width:0;flex:1;display:flex;flex-direction:column;height:100dvh}
+.topbar{height:61px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--border)}
+.topbar-title{font-weight:700;font-size:17px}
+.mobile-menu{display:none}
+#chat{flex:1;overflow:auto;padding:24px 17px 32px;scroll-behavior:smooth}
+.messages{width:100%;max-width:790px;margin:auto;display:flex;flex-direction:column;gap:24px}
+.welcome{text-align:center;margin:auto;padding:45px 10px}
+.welcome-logo{width:70px;height:70px;border-radius:24px;display:grid;place-items:center;margin:0 auto 20px;background:linear-gradient(135deg,#a78bfa,#6366f1);font-size:35px;font-weight:900}
+.welcome h1{font-size:clamp(27px,5vw,38px);letter-spacing:-1px;margin:0 0 12px}
+.welcome p{color:var(--muted);margin:0}
+.message{display:flex;align-items:flex-start;gap:12px;animation:appear .16s ease-out}
+@keyframes appear{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.avatar{width:34px;height:34px;border-radius:11px;background:#272830;display:grid;place-items:center;flex-shrink:0;font-weight:800}
+.message.assistant .avatar{background:linear-gradient(135deg,#a78bfa,#6366f1)}
+.content{min-width:0;flex:1;line-height:1.7;overflow-wrap:anywhere;padding-top:3px}
+.content p{margin:0 0 10px}
+.content p:last-child{margin-bottom:0}
+.message.user{justify-content:flex-end}
+.message.user .avatar{display:none}
+.message.user .content{flex:initial;max-width:88%;padding:11px 15px;border-radius:17px;background:#282930;border:1px solid #363740}
+.content pre{white-space:pre;overflow:auto;background:#0c0d10;border:1px solid var(--border);padding:14px;border-radius:12px}
+.content img{display:block;max-width:100%;width:auto;max-height:650px;object-fit:contain;border-radius:14px;margin-top:10px}
+.image-actions{display:flex;gap:8px;margin-top:10px}
+.small-btn{background:#222329;color:white;border:1px solid var(--border);padding:8px 12px;border-radius:10px}
+.composer-area{padding:10px 16px calc(14px + env(safe-area-inset-bottom));flex-shrink:0}
+.composer{max-width:790px;margin:auto;border:1px solid #3a3b44;border-radius:23px;background:#1b1c21;padding:10px}
+#prompt{display:block;width:100%;resize:none;max-height:170px;min-height:42px;border:0;outline:0;background:transparent;color:white;padding:8px;font-size:16px;line-height:1.5}
+#prompt::placeholder{color:#a4a5ae}
+.composer-tools{display:flex;align-items:center;gap:8px}
+.tool-btn{width:40px;height:40px;border:1px solid var(--border);border-radius:13px;background:#292a31;color:white;font-size:21px}
+#send{height:41px;min-width:44px;border:0;border-radius:13px;background:#f5f5f7;color:#17171a;font-size:22px;font-weight:800}
+#send:disabled{opacity:.5}
+.spacer{flex:1}
+.plus-wrap{position:relative}
+.menu{position:absolute;bottom:49px;left:0;width:230px;background:#222329;border:1px solid #3a3b44;border-radius:15px;padding:6px;box-shadow:0 12px 35px #0008;z-index:5}
+.menu[hidden]{display:none}
+.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:12px;border:0;border-radius:10px;background:transparent;color:white;text-align:left}
+.menu button:hover{background:#34353d}
+#style{max-width:135px;background:#292a31;color:white;border:1px solid #3a3b44;border-radius:11px;padding:9px 7px;font-size:12px;outline:0}
+@media(max-width:700px){
+.sidebar{position:fixed;inset:0 auto 0 0;width:280px;z-index:20;transform:translateX(-102%);transition:transform .2s;box-shadow:10px 0 40px #0006}
+.sidebar.open{transform:translateX(0)}
+.mobile-menu{display:block;width:38px;height:38px;border:1px solid var(--border);background:var(--panel);color:white;border-radius:11px;font-size:20px}
+.topbar{gap:12px;padding:0 12px}
+.topbar-title{margin-right:auto}
+#chat{padding:20px 12px}
+.composer-area{padding-left:9px;padding-right:9px}
+#style{max-width:110px}
 }
 </style>
 </head>
-
 <body>
-<header>
-  <div class="brand">
-    <div class="logo">O</div>
-    <span>Onur AI</span>
-  </div>
-  <button class="icon-button" id="newChat" title="Yeni sohbet" aria-label="Yeni sohbet">＋</button>
-</header>
 
-<main id="chat">
-  <div class="messages" id="messages">
-    <section class="welcome" id="welcome">
-      <div class="welcome-logo">O</div>
-      <h1>Nasıl yardımcı olabilirim?</h1>
-      <p>Bir şey sor veya hayalindeki görseli tarif et.</p>
-    </section>
+<aside class="sidebar" id="sidebar">
+  <div class="side-top">
+    <div class="brand"><div class="logo">O</div><span>Onur AI</span></div>
   </div>
-</main>
+  <button class="new-chat" id="newChat"><span>＋</span> Yeni sohbet</button>
+  <div class="history-title">Sohbetler</div>
+  <div class="history" id="history"></div>
+  <div class="side-bottom">Onur AI</div>
+</aside>
 
-<div class="composer-wrap">
-  <form class="composer" id="form">
-    <textarea id="prompt" rows="1" placeholder="Onur AI'ya bir şey sor..." autocomplete="off"></textarea>
-    <div class="composer-bottom">
-      <select id="style" aria-label="Görsel stili">
-        <option value="auto">Otomatik stil</option>
-        <option value="realistic">Gerçekçi</option>
-        <option value="cartoon">Çizgi film</option>
-        <option value="3d">3D</option>
-        <option value="anime">Anime</option>
-        <option value="horror">Korku</option>
-        <option value="pixel">Piksel sanatı</option>
-        <option value="sketch">Eskiz</option>
-        <option value="fantasy">Fantastik</option>
-        <option value="watercolor">Suluboya</option>
-      </select>
-      <div class="spacer"></div>
-      <button id="send" type="submit" aria-label="Gönder">↑</button>
+<main class="main">
+  <header class="topbar">
+    <button class="mobile-menu" id="mobileMenu" aria-label="Menüyü aç">☰</button>
+    <div class="topbar-title" id="chatTitle">Onur AI</div>
+    <button class="tool-btn" id="clearChat" title="Yeni sohbet" aria-label="Yeni sohbet">＋</button>
+  </header>
+
+  <section id="chat">
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <div class="welcome-logo">O</div>
+        <h1>Nasıl yardımcı olabilirim?</h1>
+        <p>Bir şey sor veya hayalindeki görseli tarif et.</p>
+      </div>
     </div>
-  </form>
-</div>
+  </section>
+
+  <footer class="composer-area">
+    <form class="composer" id="form">
+      <textarea id="prompt" rows="1" placeholder="Onur AI'ya bir şey sor..." autocomplete="off"></textarea>
+      <div class="composer-tools">
+        <div class="plus-wrap">
+          <button type="button" class="tool-btn" id="plusBtn" aria-label="Araçlar">＋</button>
+          <div class="menu" id="plusMenu" hidden>
+            <button type="button" id="imageCommand"><span>▧</span> Görsel oluştur</button>
+            <button type="button" id="clearCommand"><span>＋</span> Yeni sohbet</button>
+          </div>
+        </div>
+        <select id="style" aria-label="Görsel stili">
+          <option value="auto">Otomatik</option>
+          <option value="realistic">Gerçekçi</option>
+          <option value="cartoon">Çizgi film</option>
+          <option value="3d">3D</option>
+          <option value="anime">Anime</option>
+          <option value="horror">Korku</option>
+          <option value="pixel">Piksel</option>
+          <option value="sketch">Eskiz</option>
+          <option value="fantasy">Fantastik</option>
+          <option value="watercolor">Suluboya</option>
+        </select>
+        <div class="spacer"></div>
+        <button type="submit" id="send" aria-label="Gönder">↑</button>
+      </div>
+    </form>
+  </footer>
+</main>
 
 <script>
 const $ = id => document.getElementById(id);
-const form = $("form");
-const promptBox = $("prompt");
 const messages = $("messages");
 const chat = $("chat");
-const sendButton = $("send");
-const styleSelect = $("style");
+const promptBox = $("prompt");
+const plusMenu = $("plusMenu");
 
+let chats = [];
+let currentId = null;
 let busy = false;
 
-function scrollBottom() {
+function makeId(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+function saveChats(){
+  try {
+    localStorage.setItem("onur-ai-chats-v1", JSON.stringify(chats));
+  } catch {}
+}
+
+function currentChat(){
+  return chats.find(c => c.id === currentId);
+}
+
+function newChat(){
+  const item = { id: makeId(), title: "Yeni sohbet", messages: [] };
+  chats.unshift(item);
+  currentId = item.id;
+  saveChats();
+  renderChat();
+  renderHistory();
+  promptBox.focus();
+  $("sidebar").classList.remove("open");
+}
+
+function loadChats(){
+  try {
+    const stored = JSON.parse(localStorage.getItem("onur-ai-chats-v1") || "[]");
+    if (Array.isArray(stored)) {
+      chats = stored.filter(c =>
+        c && typeof c.id === "string" && Array.isArray(c.messages)
+      );
+    }
+  } catch {
+    chats = [];
+  }
+
+  if (!chats.length) {
+    const item = { id: makeId(), title: "Yeni sohbet", messages: [] };
+    chats = [item];
+  }
+
+  currentId = chats[0].id;
+  renderChat();
+  renderHistory();
+}
+
+function renderHistory(){
+  const container = $("history");
+  container.replaceChildren();
+
+  for (const item of chats) {
+    const button = document.createElement("button");
+    button.className = "history-item" + (item.id === currentId ? " active" : "");
+
+    const icon = document.createElement("span");
+    icon.textContent = "▤";
+
+    const title = document.createElement("span");
+    title.textContent = item.title || "Yeni sohbet";
+
+    button.append(icon, title);
+    button.onclick = () => {
+      currentId = item.id;
+      renderChat();
+      renderHistory();
+      $("sidebar").classList.remove("open");
+    };
+
+    container.appendChild(button);
+  }
+}
+
+function renderChat(){
+  messages.replaceChildren();
+  const item = currentChat();
+
+  $("chatTitle").textContent = item?.title || "Onur AI";
+
+  if (!item || !item.messages.length) {
+    const welcome = document.createElement("div");
+    welcome.className = "welcome";
+    welcome.id = "welcome";
+
+    const logo = document.createElement("div");
+    logo.className = "welcome-logo";
+    logo.textContent = "O";
+
+    const h1 = document.createElement("h1");
+    h1.textContent = "Nasıl yardımcı olabilirim?";
+
+    const p = document.createElement("p");
+    p.textContent = "Bir şey sor veya hayalindeki görseli tarif et.";
+
+    welcome.append(logo, h1, p);
+    messages.appendChild(welcome);
+    return;
+  }
+
+  for (const message of item.messages) {
+    renderMessage(message.role, message.text, message.image, false);
+  }
+  scrollBottom();
+}
+
+function scrollBottom(){
   chat.scrollTop = chat.scrollHeight;
 }
 
-function removeWelcome() {
+function renderMessage(role, text, image, persist = true){
   $("welcome")?.remove();
-}
-
-function addMessage(role, text) {
-  removeWelcome();
 
   const wrapper = document.createElement("div");
-  wrapper.className = `message ${role}`;
+  wrapper.className = "message " + role;
 
   const avatar = document.createElement("div");
   avatar.className = "avatar";
   avatar.textContent = role === "assistant" ? "O" : "S";
 
   const content = document.createElement("div");
-  content.className = "message-content";
+  content.className = "content";
 
-  const paragraph = document.createElement("p");
-  paragraph.textContent = text;
-  content.appendChild(paragraph);
+  if (text) {
+    const p = document.createElement("p");
+    p.textContent = text;
+    content.appendChild(p);
+  }
+
+  if (image) addImage(content, image);
 
   wrapper.append(avatar, content);
   messages.appendChild(wrapper);
   scrollBottom();
 
+  if (persist) {
+    const item = currentChat();
+    if (item) {
+      item.messages.push({ role, text: text || "", image: image || null });
+
+      if (item.title === "Yeni sohbet" && role === "user" && text) {
+        item.title = text.slice(0, 36);
+        $("chatTitle").textContent = item.title;
+      }
+
+      saveChats();
+      renderHistory();
+    }
+  }
+
   return { wrapper, content };
 }
 
-function addImage(content, dataUrl, filename) {
+function addImage(content, dataUrl){
   const img = document.createElement("img");
   img.src = dataUrl;
-  img.alt = filename;
+  img.alt = "Onur AI görseli";
   content.appendChild(img);
 
   const actions = document.createElement("div");
   actions.className = "image-actions";
 
   const download = document.createElement("button");
-  download.className = "small-button";
+  download.className = "small-btn";
   download.textContent = "PNG indir";
   download.onclick = () => {
     const a = document.createElement("a");
     a.href = dataUrl;
-    a.download = filename;
+    a.download = "onur-ai-gorsel.png";
     a.click();
   };
 
-  const open = document.createElement("button");
-  open.className = "small-button";
-  open.textContent = "Görseli aç";
-  open.onclick = () => window.open(dataUrl, "_blank");
-
-  actions.append(download, open);
+  actions.appendChild(download);
   content.appendChild(actions);
-  scrollBottom();
 }
 
-function safeColor(color, fallback = "#888888") {
+function safeColor(color, fallback = "#888888"){
   return typeof color === "string" && /^#[0-9a-fA-F]{6}$/.test(color)
-    ? color
-    : fallback;
+    ? color : fallback;
 }
 
-function renderTemplate(template) {
-  return new Promise((resolve, reject) => {
-    try {
-      const width = 1024;
-      const height = 1024;
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
+function drawTemplate(template){
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Çizim oluşturulamadı.");
 
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Canvas açılamadı.");
+  ctx.scale(.5, .5);
+  ctx.fillStyle = safeColor(template.background, "#ffffff");
+  ctx.fillRect(0, 0, 1024, 1024);
 
-      ctx.fillStyle = safeColor(template.background, "#ffffff");
-      ctx.fillRect(0, 0, width, height);
+  for (const layer of (template.layers || []).slice(0,160)){
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, Number(layer.opacity ?? 1)));
+    ctx.fillStyle = safeColor(layer.color);
+    ctx.strokeStyle = layer.stroke === "none" ? "transparent" : safeColor(layer.stroke);
+    ctx.lineWidth = Math.max(0, Math.min(100, Number(layer.strokeWidth ?? 1)));
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
 
-      for (const layer of (template.layers || [])) {
-        ctx.save();
+    const x = Number(layer.x || 0);
+    const y = Number(layer.y || 0);
+    const w = Number(layer.width || 0);
+    const h = Number(layer.height || 0);
 
-        ctx.globalAlpha = Math.max(
-          0, Math.min(1, Number(layer.opacity ?? 1))
-        );
-
-        ctx.fillStyle = safeColor(layer.color);
-        ctx.strokeStyle = layer.stroke === "none"
-          ? "transparent"
-          : safeColor(layer.stroke);
-        ctx.lineWidth = Math.max(
-          0, Math.min(100, Number(layer.strokeWidth ?? 1))
-        );
-        ctx.lineJoin = "round";
-        ctx.lineCap = "round";
-
-        const x = Number(layer.x || 0);
-        const y = Number(layer.y || 0);
-        const w = Number(layer.width || 0);
-        const h = Number(layer.height || 0);
-
-        switch (layer.type) {
-          case "rect":
-            ctx.beginPath();
-            ctx.rect(x, y, w, h);
-            ctx.fill();
-            if (layer.stroke !== "none") ctx.stroke();
-            break;
-
-          case "ellipse":
-            ctx.beginPath();
-            ctx.ellipse(
-              x + w / 2,
-              y + h / 2,
-              Math.abs(w / 2),
-              Math.abs(h / 2),
-              0, 0, Math.PI * 2
-            );
-            ctx.fill();
-            if (layer.stroke !== "none") ctx.stroke();
-            break;
-
-          case "circle":
-            ctx.beginPath();
-            ctx.arc(
-              Number(layer.cx || 0),
-              Number(layer.cy || 0),
-              Math.abs(Number(layer.r || 0)),
-              0, Math.PI * 2
-            );
-            ctx.fill();
-            if (layer.stroke !== "none") ctx.stroke();
-            break;
-
-          case "line":
-            ctx.beginPath();
-            ctx.moveTo(Number(layer.x1 || 0), Number(layer.y1 || 0));
-            ctx.lineTo(Number(layer.x2 || 0), Number(layer.y2 || 0));
-            ctx.stroke();
-            break;
-
-          case "polygon": {
-            const points = Array.isArray(layer.points) ? layer.points : [];
-            if (points.length >= 3) {
-              ctx.beginPath();
-              ctx.moveTo(Number(points[0].x), Number(points[0].y));
-              for (const point of points.slice(1)) {
-                ctx.lineTo(Number(point.x), Number(point.y));
-              }
-              ctx.closePath();
-              ctx.fill();
-              if (layer.stroke !== "none") ctx.stroke();
-            }
-            break;
-          }
-
-          case "path": {
-            if (typeof layer.d === "string" && layer.d.length < 5000) {
-              try {
-                const path = new Path2D(layer.d);
-                ctx.fill(path);
-                if (layer.stroke !== "none") ctx.stroke(path);
-              } catch {}
-            }
-            break;
-          }
-
-          case "text":
-            ctx.font = "bold 32px system-ui, sans-serif";
-            ctx.textBaseline = "top";
-            ctx.fillText(String(layer.text || "").slice(0, 200), x, y, 900);
-            break;
-        }
-
-        ctx.restore();
-      }
-
-      resolve(canvas.toDataURL("image/png"));
-    } catch (error) {
-      reject(error);
+    if (layer.type === "rect"){
+      ctx.fillRect(x,y,w,h);
+      if (layer.stroke !== "none") ctx.strokeRect(x,y,w,h);
+    } else if (layer.type === "ellipse"){
+      ctx.beginPath();
+      ctx.ellipse(x+w/2,y+h/2,Math.abs(w/2),Math.abs(h/2),0,0,Math.PI*2);
+      ctx.fill();
+      if (layer.stroke !== "none") ctx.stroke();
+    } else if (layer.type === "circle"){
+      ctx.beginPath();
+      ctx.arc(Number(layer.cx||0),Number(layer.cy||0),Math.abs(Number(layer.r||0)),0,Math.PI*2);
+      ctx.fill();
+      if (layer.stroke !== "none") ctx.stroke();
+    } else if (layer.type === "line"){
+      ctx.beginPath();
+      ctx.moveTo(Number(layer.x1||0),Number(layer.y1||0));
+      ctx.lineTo(Number(layer.x2||0),Number(layer.y2||0));
+      ctx.stroke();
+    } else if (layer.type === "polygon" && Array.isArray(layer.points) && layer.points.length >= 3){
+      ctx.beginPath();
+      ctx.moveTo(Number(layer.points[0].x),Number(layer.points[0].y));
+      for (const point of layer.points.slice(1)) ctx.lineTo(Number(point.x),Number(point.y));
+      ctx.closePath();
+      ctx.fill();
+      if (layer.stroke !== "none") ctx.stroke();
+    } else if (layer.type === "path" && typeof layer.d === "string"){
+      try {
+        const path = new Path2D(layer.d);
+        ctx.fill(path);
+        if (layer.stroke !== "none") ctx.stroke(path);
+      } catch {}
+    } else if (layer.type === "text"){
+      ctx.font = "bold 32px system-ui,sans-serif";
+      ctx.textBaseline = "top";
+      ctx.fillText(String(layer.text||"").slice(0,200),x,y,900);
     }
-  });
+
+    ctx.restore();
+  }
+
+  return canvas.toDataURL("image/png");
 }
 
-async function createImage(prompt) {
-  const message = addMessage("assistant", "Görsel oluşturuluyor...");
-  const { content } = message;
+async function createImage(prompt){
+  const responseMessage = renderMessage("assistant","",null,false);
+  const content = responseMessage.content;
 
   try {
-    const response = await fetch("/api/drawing-plan", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt,
-        style: styleSelect.value
-      })
+    const response = await fetch("/api/drawing-plan",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({prompt,style:$("style").value})
     });
 
     const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Görsel oluşturulamadı.");
+    if (!data.template) throw new Error("Çizim şablonu bulunamadı.");
 
-    if (!response.ok) {
-      throw new Error(data.error || "Görsel oluşturulamadı.");
-    }
-
-    if (!data.template) {
-      throw new Error("Sunucu geçerli bir çizim şablonu döndürmedi.");
-    }
-
-    const png = await renderTemplate(data.template);
+    const png = drawTemplate(data.template);
     content.replaceChildren();
 
     const title = document.createElement("p");
-    title.textContent = data.template.title || "Oluşturulan görsel";
+    title.textContent = data.template.title || "Görsel";
     content.appendChild(title);
+    addImage(content,png);
 
-    addImage(
-      content,
-      png,
-      "onur-ai-gorsel.png"
-    );
-  } catch (error) {
+    const item = currentChat();
+    if (item) {
+      item.messages.push({
+        role:"assistant",
+        text:title.textContent,
+        image:png
+      });
+      saveChats();
+    }
+  } catch(error) {
     content.replaceChildren();
     const p = document.createElement("p");
     p.textContent = error.message || "Görsel oluşturulamadı.";
     content.appendChild(p);
+
+    const item = currentChat();
+    if (item) {
+      item.messages.push({role:"assistant",text:p.textContent,image:null});
+      saveChats();
+    }
   }
 }
 
-async function sendChat(prompt) {
-  const message = addMessage("assistant", "");
-  const { content } = message;
+async function sendChat(prompt){
+  const responseMessage = renderMessage("assistant","",null,false);
+  const content = responseMessage.content;
 
   try {
-    const response = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: prompt })
+    const response = await fetch("/api/chat",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({message:prompt})
     });
 
     const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Yanıt alınamadı.");
-    }
+    if (!response.ok) throw new Error(data.error || "Yanıt alınamadı.");
 
     content.replaceChildren();
-
     const p = document.createElement("p");
     p.textContent = data.reply || "Yanıt oluşturulamadı.";
     content.appendChild(p);
-  } catch (error) {
-    content.replaceChildren();
 
+    const item = currentChat();
+    if (item) {
+      item.messages.push({role:"assistant",text:p.textContent,image:null});
+      saveChats();
+    }
+  } catch(error) {
+    content.replaceChildren();
     const p = document.createElement("p");
     p.textContent = error.message || "Bir hata oluştu.";
     content.appendChild(p);
-  }
 
-  scrollBottom();
+    const item = currentChat();
+    if (item) {
+      item.messages.push({role:"assistant",text:p.textContent,image:null});
+      saveChats();
+    }
+  }
 }
 
-async function submitPrompt() {
+async function submitPrompt(){
   if (busy) return;
-
   const prompt = promptBox.value.trim();
   if (!prompt) return;
 
   busy = true;
-  sendButton.disabled = true;
+  $("send").disabled = true;
+  plusMenu.hidden = true;
 
-  addMessage("user", prompt);
+  renderMessage("user",prompt,null,true);
   promptBox.value = "";
   promptBox.style.height = "auto";
 
   try {
     const match = prompt.match(/^@gorselolustur\b\s*([\s\S]*)$/i);
-
     if (match) {
       const drawingPrompt = match[1].trim();
-
       if (!drawingPrompt) {
-        addMessage(
-          "assistant",
-          "Örnek: @gorselolustur uçan bir kedi"
-        );
+        renderMessage("assistant","Örnek: @gorselolustur uçan bir kedi",null,true);
       } else {
         await createImage(drawingPrompt);
       }
@@ -600,51 +505,62 @@ async function submitPrompt() {
     }
   } finally {
     busy = false;
-    sendButton.disabled = false;
+    $("send").disabled = false;
     promptBox.focus();
+    scrollBottom();
   }
 }
 
-form.addEventListener("submit", event => {
+$("form").addEventListener("submit",event=>{
   event.preventDefault();
   submitPrompt();
 });
 
-promptBox.addEventListener("input", () => {
+promptBox.addEventListener("input",()=>{
   promptBox.style.height = "auto";
-  promptBox.style.height = Math.min(promptBox.scrollHeight, 160) + "px";
+  promptBox.style.height = Math.min(promptBox.scrollHeight,170)+"px";
 });
 
-promptBox.addEventListener("keydown", event => {
-  if (event.key === "Enter" && !event.shiftKey) {
+promptBox.addEventListener("keydown",event=>{
+  if (event.key === "Enter" && !event.shiftKey){
     event.preventDefault();
     submitPrompt();
   }
 });
 
-$("newChat").addEventListener("click", () => {
-  messages.replaceChildren();
-
-  const welcome = document.createElement("section");
-  welcome.className = "welcome";
-  welcome.id = "welcome";
-
-  const logo = document.createElement("div");
-  logo.className = "welcome-logo";
-  logo.textContent = "O";
-
-  const heading = document.createElement("h1");
-  heading.textContent = "Nasıl yardımcı olabilirim?";
-
-  const paragraph = document.createElement("p");
-  paragraph.textContent = "Bir şey sor veya hayalindeki görseli tarif et.";
-
-  welcome.append(logo, heading, paragraph);
-  messages.appendChild(welcome);
-
-  promptBox.value = "";
-  promptBox.focus();
+$("plusBtn").addEventListener("click",()=>{
+  plusMenu.hidden = !plusMenu.hidden;
 });
+
+$("imageCommand").addEventListener("click",()=>{
+  plusMenu.hidden = true;
+  const prefix = "@gorselolustur ";
+  if (!promptBox.value.trim()) {
+    promptBox.value = prefix;
+  } else if (!promptBox.value.trimStart().toLowerCase().startsWith("@gorselolustur")) {
+    promptBox.value = prefix + promptBox.value.trim();
+  }
+  promptBox.focus();
+  promptBox.setSelectionRange(promptBox.value.length,promptBox.value.length);
+});
+
+$("clearCommand").addEventListener("click",()=>{
+  plusMenu.hidden = true;
+  newChat();
+});
+
+$("newChat").addEventListener("click",newChat);
+$("clearChat").addEventListener("click",newChat);
+
+$("mobileMenu").addEventListener("click",()=>{
+  $("sidebar").classList.toggle("open");
+});
+
+document.addEventListener("click",event=>{
+  if (!event.target.closest(".plus-wrap")) plusMenu.hidden = true;
+});
+
+loadChats();
 </script>
 </body>
 </html>
