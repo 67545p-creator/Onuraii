@@ -18,6 +18,7 @@ header{padding:16px;border-bottom:1px solid #303036;font-weight:bold;font-size:2
 #composer{display:flex;gap:8px;padding:12px;border-top:1px solid #303036}
 input{flex:1;min-width:0;padding:13px;border:1px solid #41424b;border-radius:12px;background:#202127;color:white;font-size:16px}
 button{border:0;border-radius:12px;padding:12px 15px;background:#5865f2;color:white;cursor:pointer}
+button:disabled{opacity:.5}
 #plusWrap{position:relative}
 #plusButton{background:#30313a;font-size:22px}
 #menu{display:none;position:absolute;bottom:54px;left:0;min-width:180px;padding:6px;background:#262730;border-radius:12px}
@@ -46,6 +47,7 @@ const menu=document.getElementById("menu");
 document.getElementById("plusButton").onclick=()=>{
   menu.style.display=menu.style.display==="block"?"none":"block";
 };
+
 document.getElementById("imageCommand").onclick=()=>{
   input.value="@gorselolustur ";
   input.focus();
@@ -60,64 +62,107 @@ function addMessage(text,role="assistant"){
   chat.scrollTop=chat.scrollHeight;
   return el;
 }
+
 function num(v,max=512){
   const n=Number(v);
   return Number.isFinite(n)?Math.max(0,Math.min(max,n)):0;
 }
+
 function color(v,fallback="#333333"){
-  return typeof v==="string"&&/^#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?$/.test(v)?v:fallback;
+  return typeof v==="string"&&/^#[0-9a-fA-F]{6}$/.test(v)?v:fallback;
 }
-function renderShape(s){
+
+function renderShape(s,index){
   const fill=s.fill==="none"?"none":color(s.fill,"#dddddd");
   const stroke=s.stroke==="none"?"none":color(s.stroke);
   const sw=num(s.strokeWidth,30);
   const common=`fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"`;
+  const n=key=>num(s[key]);
+
   switch(s.type){
-    case "circle":return `<circle cx="${num(s.cx)}" cy="${num(s.cy)}" r="${num(s.r)}" ${common}/>`;
-    case "ellipse":return `<ellipse cx="${num(s.cx)}" cy="${num(s.cy)}" rx="${num(s.rx)}" ry="${num(s.ry)}" ${common}/>`;
-    case "rect":return `<rect x="${num(s.x)}" y="${num(s.y)}" width="${num(s.width)}" height="${num(s.height)}" rx="${num(s.rx,100)}" ${common}/>`;
-    case "line":return `<line x1="${num(s.x1)}" y1="${num(s.y1)}" x2="${num(s.x2)}" y2="${num(s.y2)}" stroke="${stroke}" stroke-width="${sw}"/>`;
+    case "circle":
+      return `<circle cx="${n("cx")}" cy="${n("cy")}" r="${n("r")}" ${common}/>`;
+    case "ellipse":
+      return `<ellipse cx="${n("cx")}" cy="${n("cy")}" rx="${n("rx")}" ry="${n("ry")}" ${common}/>`;
+    case "rect":
+      return `<rect x="${n("x")}" y="${n("y")}" width="${n("width")}" height="${n("height")}" rx="${num(s.rx,100)}" ${common}/>`;
+    case "line":
+      return `<line x1="${n("x1")}" y1="${n("y1")}" x2="${n("x2")}" y2="${n("y2")}" stroke="${stroke}" stroke-width="${sw}"/>`;
     case "polygon":{
       if(typeof s.points!=="string"||s.points.length>3000||!/^[0-9+.,\s-]+$/.test(s.points))return "";
       return `<polygon points="${s.points}" ${common}/>`;
     }
     case "path":{
-      if(typeof s.d!=="string"||s.d.length>4000||!/^[0-9MmLlHhVvCcSsQqTtZzEe+.,\s-]+$/.test(s.d))return "";
+      if(typeof s.d!=="string"||s.d.length>4000||!/^[0-9MmLlHhVvCcSsQqTtZz+.,\s-]+$/.test(s.d))return "";
       return `<path d="${s.d}" ${common}/>`;
     }
-    default:return "";
+    default:
+      return "";
   }
 }
+
+function styleFilters(style,details){
+  const shadow=details?.shadows
+    ? `<filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur in="SourceAlpha" stdDeviation="${style==="photorealistic"?3:2}"/><feOffset dx="2" dy="4" result="off"/><feComponentTransfer><feFuncA type="linear" slope="0.35"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>`
+    : "";
+  return `<defs>${shadow}</defs>`;
+}
+
 async function planToPng(plan){
-  const shapes=plan.shapes.slice(0,100).map(renderShape).join("");
+  if(!plan||!Array.isArray(plan.shapes))throw new Error("Çizim planı geçersiz.");
+
+  const style=String(plan.style||"cartoon");
+  const details=plan.details||{};
   const bg=color(plan.background,"#ffffff");
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" fill="${bg}"/>${shapes}</svg>`;
+  const shapes=plan.shapes.slice(0,100).map(renderShape).join("");
+  const filters=styleFilters(style,details);
+
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  ${filters}
+  <rect width="512" height="512" fill="${bg}"/>
+  <g ${details.shadows?'filter="url(#shadow)"':""}>${shapes}</g>
+  </svg>`;
+
   const url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));
+
   try{
     const img=new Image();
     img.src=url;
     await img.decode();
+
     const canvas=document.createElement("canvas");
-    canvas.width=512;canvas.height=512;
-    canvas.getContext("2d").drawImage(img,0,0);
+    canvas.width=512;
+    canvas.height=512;
+
+    const ctx=canvas.getContext("2d");
+    if(!ctx)throw new Error("Canvas kullanılamıyor.");
+
+    ctx.drawImage(img,0,0);
     return canvas.toDataURL("image/png");
-  }finally{URL.revokeObjectURL(url);}
+  }finally{
+    URL.revokeObjectURL(url);
+  }
 }
+
 async function makeImage(prompt){
   const r=await fetch("/api/drawing-plan",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({prompt})
   });
+
   const data=await r.json();
   if(!r.ok)throw new Error(data.error||"Görsel oluşturulamadı.");
+
   return planToPng(data.plan);
 }
+
 function displayImage(container,src){
   const img=document.createElement("img");
   img.src=src;
   img.alt="Oluşturulan görsel";
   container.appendChild(img);
+
   const a=document.createElement("a");
   a.className="download";
   a.href=src;
@@ -125,42 +170,62 @@ function displayImage(container,src){
   a.textContent="PNG indir";
   container.appendChild(a);
 }
+
 async function sendMessage(message){
-  sendButton.disabled=true;input.disabled=true;
+  sendButton.disabled=true;
+  input.disabled=true;
+
   try{
-    const match=message.match(/@gorselolustur\b/i);
+    const match=message.match(/^@gorselolustur\b([\s\S]*)/i);
+
     if(match){
-      const prompt=message.replace(/@gorselolustur\b/i,"").trim();
+      const prompt=match[1].trim();
       addMessage(message,"user");
-      if(!prompt){addMessage("Bir görsel tarifi yaz.");return;}
+
+      if(!prompt){
+        addMessage("Bir görsel tarifi yaz.");
+        return;
+      }
+
       const status=addMessage("Görsel oluşturuluyor...");
       status.classList.add("status");
+
       const png=await makeImage(prompt);
+
       status.classList.remove("status");
       status.textContent="";
       displayImage(status,png);
     }else{
       addMessage(message,"user");
+
       const r=await fetch("/api/chat",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({message})
       });
+
       const data=await r.json();
       if(!r.ok)throw new Error(data.error||"Yanıt alınamadı.");
+
       addMessage(data.text||"Yanıt alınamadı.");
     }
-  }catch(e){addMessage("Hata: "+e.message);}
-  finally{
-    sendButton.disabled=false;input.disabled=false;input.focus();
+  }catch(e){
+    addMessage("Hata: "+e.message);
+  }finally{
+    sendButton.disabled=false;
+    input.disabled=false;
+    input.focus();
     chat.scrollTop=chat.scrollHeight;
   }
 }
+
 form.onsubmit=async e=>{
   e.preventDefault();
   const message=input.value.trim();
   if(!message)return;
-  input.value="";menu.style.display="none";
+
+  input.value="";
+  menu.style.display="none";
   await sendMessage(message);
 };
 </script>
