@@ -1,77 +1,148 @@
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Onur AI</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%}
-body{font-family:Arial,sans-serif;background:#0f1117;color:white;display:flex;flex-direction:column;overflow:hidden}
-header{height:64px;background:#171a23;border-bottom:1px solid #292d38;display:flex;align-items:center;gap:12px;padding:0 14px;flex-shrink:0}
-#menuButton,#closeButton{border:0;border-radius:10px;background:transparent;color:white;cursor:pointer}
-#menuButton{width:44px;height:44px;font-size:27px}.logo{font-size:22px;font-weight:bold}
-#chat{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px}
-.message{max-width:85%;padding:12px 15px;border-radius:15px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
-.user{align-self:flex-end;background:#2563eb;border-bottom-right-radius:4px}.ai{align-self:flex-start;background:#242936;border-bottom-left-radius:4px}
-.generatedImage{display:block;width:100%;max-width:420px;height:auto;margin-top:10px;border-radius:10px}
-#inputArea{display:flex;align-items:center;gap:8px;padding:10px;background:#171a23;border-top:1px solid #292d38}
-#messageInput{flex:1;min-width:0;height:48px;padding:0 15px;border:0;outline:none;border-radius:12px;background:#242936;color:white;font-size:16px}
-#sendButton{height:48px;padding:0 18px;border:0;border-radius:12px;background:#2563eb;color:white;font-size:16px;cursor:pointer;flex-shrink:0}
-#sendButton:disabled{opacity:.5;cursor:default}
-#plusWrapper{position:relative;flex-shrink:0}#plusButton{width:48px;height:48px;border:1px solid #353b49;border-radius:12px;background:#242936;color:white;font-size:30px;cursor:pointer}
-#plusMenu{position:absolute;bottom:58px;left:0;width:210px;padding:7px;background:#242936;border:1px solid #414858;border-radius:12px;display:none;z-index:50;box-shadow:0 8px 25px #0007}
-#plusMenu.open{display:block}#imageCommandButton{width:100%;padding:12px;text-align:left;border:0;border-radius:8px;color:white;background:transparent;font-size:15px;cursor:pointer}
-#imageCommandButton:hover{background:#353d4d}
-#overlay{position:fixed;inset:0;background:#0008;display:none;z-index:20}#overlay.active{display:block}
-#sidebar{position:fixed;top:0;left:0;width:285px;height:100%;background:#171a23;border-right:1px solid #292d38;transform:translateX(-100%);transition:transform .25s;z-index:30;display:flex;flex-direction:column}
-#sidebar.open{transform:translateX(0)}.sidebarTop{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #292d38;flex-shrink:0}
-.sidebarTitle{font-size:20px;font-weight:bold}#closeButton{width:42px;height:42px;font-size:25px}
-#newChatButton{margin:14px;height:48px;border:0;border-radius:11px;background:#2563eb;color:white;font-size:16px;cursor:pointer;flex-shrink:0}
-#chatList{flex:1;overflow-y:auto;padding:0 10px 15px}.chatItem{width:100%;min-height:46px;border:0;border-radius:10px;background:transparent;color:white;text-align:left;padding:12px;margin-bottom:4px;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:14px}
-.chatItem:hover,.chatItem.active{background:#242936}.emptyChats{color:#8f96a8;text-align:center;padding:20px 10px;font-size:14px}
-@media(max-width:500px){#sidebar{width:82%;max-width:300px}#chat{padding:12px}#sendButton{padding:0 13px}.message{max-width:92%}}
+*{box-sizing:border-box}
+body{margin:0;height:100dvh;display:flex;flex-direction:column;background:#101114;color:#f5f5f5;font-family:Arial,sans-serif}
+header{padding:16px;border-bottom:1px solid #303036;font-size:20px;font-weight:bold}
+#chat{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.message{max-width:90%;padding:12px 15px;border-radius:14px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
+.user{align-self:flex-end;background:#343640}
+.assistant{align-self:flex-start;background:#202127}
+.message img{display:block;max-width:100%;height:auto;margin-top:10px;border-radius:10px}
+.download{display:inline-block;margin-top:10px;color:#b9c9ff}
+#composer{display:flex;gap:8px;padding:12px;border-top:1px solid #303036}
+input{flex:1;min-width:0;padding:13px;border:1px solid #41424b;border-radius:12px;background:#202127;color:white;font-size:16px;outline:none}
+button{border:0;border-radius:12px;padding:12px 15px;background:#5865f2;color:white;font-size:15px;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}
+#plusWrap{position:relative}
+#plusButton{background:#30313a;font-size:22px}
+#menu{display:none;position:absolute;bottom:54px;left:0;min-width:190px;padding:6px;background:#262730;border:1px solid #41424b;border-radius:12px}
+#menu button{width:100%;text-align:left;background:transparent}
+.status{opacity:.8;font-style:italic}
 </style>
 </head>
 <body>
-<header><button id="menuButton" aria-label="Menüyü aç">☰</button><div class="logo">Onur AI</div></header>
-<div id="chat" aria-live="polite"></div>
-<div id="inputArea">
-  <div id="plusWrapper">
-    <button id="plusButton" type="button" aria-label="Ek seçenekler" aria-expanded="false" aria-controls="plusMenu">+</button>
-    <div id="plusMenu"><button id="imageCommandButton" type="button">🖼️ @gorselolustur</button></div>
-  </div>
-  <input id="messageInput" type="text" autocomplete="off" placeholder="Mesaj yaz...">
-  <button id="sendButton">Gönder</button>
-</div>
-<div id="overlay"></div>
-<aside id="sidebar">
-  <div class="sidebarTop"><div class="sidebarTitle">Onur AI</div><button id="closeButton" aria-label="Menüyü kapat">×</button></div>
-  <button id="newChatButton">＋ Yeni sohbet</button>
-  <div id="chatList"><div class="emptyChats">Henüz sohbet yok.</div></div>
-</aside>
-<script>
-const chat=document.getElementById("chat"),input=document.getElementById("messageInput"),sendButton=document.getElementById("sendButton");
-const menuButton=document.getElementById("menuButton"),closeButton=document.getElementById("closeButton"),sidebar=document.getElementById("sidebar"),overlay=document.getElementById("overlay");
-const newChatButton=document.getElementById("newChatButton"),chatList=document.getElementById("chatList");
-const plusButton=document.getElementById("plusButton"),plusMenu=document.getElementById("plusMenu"),imageCommandButton=document.getElementById("imageCommandButton");
-const MAX_CHATS=1000000;let chats=[],currentChat=null,chatNumber=0;
+<header>Onur AI</header>
 
-function saveChats(){try{localStorage.setItem("onurAI_chats",JSON.stringify(chats));localStorage.setItem("onurAI_chatNumber",String(chatNumber));}catch(e){console.error("Sohbetler kaydedilemedi:",e);}}
-function loadChats(){try{const saved=localStorage.getItem("onurAI_chats"),number=localStorage.getItem("onurAI_chatNumber");if(saved){const parsed=JSON.parse(saved);if(Array.isArray(parsed))chats=parsed.filter(x=>x&&typeof x.id==="string"&&typeof x.title==="string"&&Array.isArray(x.messages));}if(number)chatNumber=Number(number)||0;const highest=chats.reduce((n,x)=>{const m=String(x.title).match(/^Sohbet (\d+)$/);return m?Math.max(n,Number(m[1])):n;},0);chatNumber=Math.max(chatNumber,highest);}catch(e){console.error("Sohbetler yüklenemedi:",e);chats=[];chatNumber=0;}}
-function createChat(){if(chatNumber>=MAX_CHATS){alert("Sohbet sınırına ulaşıldı: 1.000.000 sohbet.");return;}chatNumber++;currentChat={id:Date.now().toString()+Math.random().toString(36).slice(2),title:"Sohbet "+chatNumber,messages:[]};chats.unshift(currentChat);saveChats();renderChatList();renderMessages();closeSidebar();input.focus();}
-function renderChatList(){chatList.innerHTML="";if(!chats.length){const e=document.createElement("div");e.className="emptyChats";e.textContent="Henüz sohbet yok.";chatList.appendChild(e);return;}chats.forEach(item=>{const b=document.createElement("button");b.className="chatItem"+(currentChat&&currentChat.id===item.id?" active":"");b.textContent=item.title;b.addEventListener("click",()=>{currentChat=item;renderMessages();renderChatList();closeSidebar();input.focus();});chatList.appendChild(b);});}
-function renderMessages(){chat.innerHTML="";if(!currentChat)return;currentChat.messages.forEach(m=>addMessage(m.text,m.type,false));chat.scrollTop=chat.scrollHeight;}
-function addMessage(text,type,save=true){const el=document.createElement("div");el.className="message "+type;el.textContent=text;chat.appendChild(el);chat.scrollTop=chat.scrollHeight;if(save&&currentChat){currentChat.messages.push({text,type});saveChats();}}
-function addGeneratedImage(prompt,data){const bubble=document.createElement("div");bubble.className="message ai";const caption=document.createElement("div");caption.textContent="🖼️ Oluşturulan görsel: "+prompt;bubble.appendChild(caption);const img=document.createElement("img");img.className="generatedImage";img.alt=prompt;img.loading="lazy";img.src="data:"+(data.mimeType||"image/png")+";base64,"+data.image;bubble.appendChild(img);chat.appendChild(bubble);chat.scrollTop=chat.scrollHeight;if(currentChat){currentChat.messages.push({text:"🖼️ Görsel oluşturuldu: "+prompt,type:"ai"});saveChats();}}
-async function sendMessage(){const text=input.value.trim();if(!text||sendButton.disabled)return;if(!currentChat)createChat();if(!currentChat)return;addMessage(text,"user");input.value="";sendButton.disabled=true;try{const isImage=/^@gorselolustur\b/i.test(text),prompt=isImage?text.replace(/^@gorselolustur\b/i,"").trim():"";if(isImage&&!prompt){addMessage("Lütfen görsel açıklamasını da yaz. Örnek: @gorselolustur uzayda uçan bir kedi","ai");return;}const response=await fetch(isImage?"/api/generate-image":"/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(isImage?{prompt}:{message:text})});let data;try{data=await response.json();}catch{throw new Error("Sunucudan geçerli yanıt alınamadı.");}if(!response.ok)throw new Error(data.error||"Sunucu isteği başarısız oldu.");if(isImage){if(!data.image)throw new Error("Sunucu görsel döndürmedi. /api/generate-image uç noktasını kontrol et.");addGeneratedImage(prompt,data);}else addMessage(data.reply||"Onur AI cevap vermedi.","ai");}catch(e){console.error("Onur AI hatası:",e);addMessage(e.message||"Onur AI bağlantısında hata oluştu.","ai");}finally{sendButton.disabled=false;input.focus();}}
-function openSidebar(){sidebar.classList.add("open");overlay.classList.add("active");renderChatList();}
-function closeSidebar(){sidebar.classList.remove("open");overlay.classList.remove("active");}
-menuButton.addEventListener("click",openSidebar);closeButton.addEventListener("click",closeSidebar);overlay.addEventListener("click",closeSidebar);newChatButton.addEventListener("click",createChat);
-sendButton.addEventListener("click",sendMessage);input.addEventListener("keydown",e=>{if(e.key==="Enter")sendMessage();});
-plusButton.addEventListener("click",()=>{const open=plusMenu.classList.toggle("open");plusButton.setAttribute("aria-expanded",String(open));});
-imageCommandButton.addEventListener("click",()=>{input.value="@gorselolustur ";plusMenu.classList.remove("open");plusButton.setAttribute("aria-expanded","false");input.focus();input.setSelectionRange(input.value.length,input.value.length);});
-document.addEventListener("click",e=>{if(!plusMenu.contains(e.target)&&e.target!==plusButton){plusMenu.classList.remove("open");plusButton.setAttribute("aria-expanded","false");}});
-loadChats();if(chats.length)currentChat=chats[0];renderMessages();renderChatList();input.focus();
+<main id="chat" aria-live="polite">
+<div class="message assistant">Merhaba! Ben Onur AI. Sana nasıl yardımcı olabilirim?</div>
+</main>
+
+<form id="composer">
+<div id="plusWrap">
+<button id="plusButton" type="button" aria-label="Menüyü aç">+</button>
+<div id="menu">
+<button id="imageCommand" type="button">@gorselolustur</button>
+</div>
+</div>
+<input id="messageInput" placeholder="Mesajını yaz..." autocomplete="off" required>
+<button id="sendButton" type="submit">Gönder</button>
+</form>
+
+<script>
+const chat = document.getElementById("chat");
+const form = document.getElementById("composer");
+const input = document.getElementById("messageInput");
+const sendButton = document.getElementById("sendButton");
+const menu = document.getElementById("menu");
+
+document.getElementById("plusButton").addEventListener("click", () => {
+  menu.style.display = menu.style.display === "block" ? "none" : "block";
+});
+
+document.getElementById("imageCommand").addEventListener("click", () => {
+  input.value = "@gorselolustur ";
+  input.focus();
+  menu.style.display = "none";
+});
+
+function addMessage(text, role = "assistant") {
+  const el = document.createElement("div");
+  el.className = `message ${role}`;
+  el.textContent = text;
+  chat.appendChild(el);
+  chat.scrollTop = chat.scrollHeight;
+  return el;
+}
+
+async function sendMessage(message) {
+  sendButton.disabled = true;
+  input.disabled = true;
+
+  try {
+    if (/@gorselolustur\b/i.test(message)) {
+      const prompt = message.replace(/@gorselolustur\b/i, "").trim();
+      addMessage(message, "user");
+
+      if (!prompt) {
+        addMessage("Görsel açıklamasını yaz.");
+        return;
+      }
+
+      const status = addMessage("Görsel oluşturuluyor...");
+      status.classList.add("status");
+
+      const response = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Görsel oluşturulamadı.");
+
+      status.classList.remove("status");
+      status.textContent = data.text || "Görsel oluşturuldu.";
+
+      const img = document.createElement("img");
+      img.src = data.image;
+      img.alt = "Oluşturulan görsel";
+      status.appendChild(img);
+
+      const link = document.createElement("a");
+      link.className = "download";
+      link.href = data.image;
+      link.download = "onur-ai-gorsel.png";
+      link.textContent = "Görseli indir";
+      status.appendChild(link);
+    } else {
+      addMessage(message, "user");
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Sohbet başarısız.");
+
+      addMessage(data.text || "Yanıt alınamadı.");
+    }
+  } catch (error) {
+    addMessage("Hata: " + error.message);
+  } finally {
+    sendButton.disabled = false;
+    input.disabled = false;
+    input.focus();
+    chat.scrollTop = chat.scrollHeight;
+  }
+}
+
+form.addEventListener("submit", async event => {
+  event.preventDefault();
+  const message = input.value.trim();
+  if (!message) return;
+
+  input.value = "";
+  menu.style.display = "none";
+  await sendMessage(message);
+});
 </script>
 </body>
 </html>
