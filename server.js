@@ -1,4 +1,5 @@
 
+import "dotenv/config";
 import express from "express";
 import { GoogleGenAI } from "@google/genai";
 import path from "node:path";
@@ -6,24 +7,13 @@ import { fileURLToPath } from "node:url";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const MODEL = "gemini-3.5-flash-lite";
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
+const MODEL = "gemini-3.1-flash-lite";
+const IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL || "gemini-2.5-flash-image";
 const ai = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
-const SHAPES = [
-  "circle", "ellipse", "rect", "square", "line", "triangle",
-  "polygon", "star", "heart", "diamond", "ring", "arc",
-  "cloud", "leaf", "flame", "spiral", "path", "cross",
-  "plus", "minus", "hexagon", "pentagon", "octagon",
-  "trapezoid", "parallelogram", "crescent", "semicircle",
-  "quarter_circle", "arrow", "double_arrow", "lightning",
-  "moon", "sun", "flower", "petal", "eye", "speech_bubble",
-  "wave", "rays", "gear", "cylinder", "cone", "cube",
-  "pyramid", "cylinder_3d", "sparkle"
-];
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 app.use(express.json({ limit: "2mb" }));
 app.use(express.static(path.join(__dirname, "public")));
@@ -46,7 +36,9 @@ app.post("/api/chat", async (req, res) => {
     ];
 
     for (const [pattern, reply] of replies) {
-      if (pattern.test(message)) return res.json({ text: reply });
+      if (pattern.test(message)) {
+        return res.json({ text: reply });
+      }
     }
 
     const result = await ai.models.generateContent({
@@ -54,14 +46,16 @@ app.post("/api/chat", async (req, res) => {
       contents: message
     });
 
-    return res.json({ text: result.text || "Yanıt oluşturulamadı." });
+    return res.json({
+      text: result.text || "Yanıt oluşturulamadı."
+    });
   } catch (error) {
-    console.error("Chat:", error);
+    console.error("Chat error:", error);
     return res.status(500).json({ error: "Yanıt oluşturulamadı." });
   }
 });
 
-app.post("/api/drawing-plan", async (req, res) => {
+app.post("/api/template", async (req, res) => {
   try {
     if (!ai) {
       return res.status(500).json({ error: "GEMINI_API_KEY ayarlanmamış." });
@@ -69,106 +63,163 @@ app.post("/api/drawing-plan", async (req, res) => {
 
     const prompt = String(req.body?.prompt || "").trim();
 
-    if (!prompt) return res.status(400).json({ error: "Tarif boş." });
-    if (prompt.length > 1000) {
-      return res.status(400).json({ error: "Tarif çok uzun." });
+    if (!prompt) {
+      return res.status(400).json({ error: "Görsel tarifi boş." });
+    }
+
+    if (prompt.length > 1500) {
+      return res.status(400).json({ error: "Görsel tarifi çok uzun." });
     }
 
     const instruction = `
-Kullanıcı tarifi: ${JSON.stringify(prompt)}
+Kullanıcının görsel tarifi:
+${JSON.stringify(prompt)}
 
-512x512 görsel için ayrıntılı bir JSON çizim planı oluştur.
-Yalnızca JSON döndür, Markdown yazma.
+Görevin görselin kendisini çizmek değil, görsel üretiminde kullanılacak ayrıntılı bir JSON kalıbı hazırlamak.
 
-Stiller: photorealistic, 3d, anime, watercolor, painting,
-cartoon, vector, pixel_art, fantasy, pencil, comic.
+Yalnızca geçerli JSON döndür. Markdown veya açıklama ekleme.
 
-JSON:
+JSON şeması:
 {
-  "style": "cartoon",
-  "background": "#ffffff",
-  "lighting": {"direction": "upper_left", "intensity": 0.7},
-  "details": {
-    "texture": "smooth",
-    "shadows": true,
-    "highlights": true,
-    "depth": true
+  "template_version": 1,
+  "subject": "konu",
+  "style": "photorealistic",
+  "scene": {
+    "background": "orman",
+    "environment": "doğal ortam",
+    "composition": "full_body",
+    "camera_angle": "eye_level",
+    "aspect_ratio": "1:1"
   },
-  "shapes": [
-    {"type":"circle","cx":256,"cy":256,"r":80,"fill":"#ffaa33","stroke":"#222222","strokeWidth":2}
-  ]
+  "subject_details": {
+    "anatomy": "doğal ve gerçekçi",
+    "pose": "ayakta",
+    "colors": [],
+    "materials": [],
+    "textures": [],
+    "distinctive_features": []
+  },
+  "lighting": {
+    "type": "natural",
+    "direction": "side",
+    "shadows": true,
+    "mood": "cinematic"
+  },
+  "quality": {
+    "detail_level": "high",
+    "depth_of_field": true,
+    "realistic_proportions": true
+  },
+  "negative_prompt": [
+    "deformed anatomy",
+    "extra limbs",
+    "blurry"
+  ],
+  "image_prompt": "Görseli oluşturmak için ayrıntılı İngilizce açıklama"
 }
 
-Kullanılabilen bütün shape türleri:
-${SHAPES.join(", ")}
-
-Alanlar:
-- circle: cx, cy, r
-- ellipse: cx, cy, rx, ry
-- rect: x, y, width, height, rx
-- square: x, y, size
-- line: x1, y1, x2, y2
-- triangle, hexagon, pentagon, octagon, trapezoid,
-  parallelogram, diamond: cx, cy, r
-- polygon: points ("x,y x,y x,y")
-- star: cx, cy, r, pointsCount, innerRadius
-- heart, cloud, leaf, flame, crescent, semicircle,
-  quarter_circle, arrow, double_arrow, lightning, moon,
-  sun, flower, petal, eye, speech_bubble, wave, rays,
-  gear, cylinder, cone, cube, pyramid, cylinder_3d,
-  cross, plus, minus, sparkle: cx, cy, r
-- ring: cx, cy, r, ringWidth
-- arc: x1, y1, x2, y2, rx, ry
-- spiral: cx, cy, r, turns
-- path: d
-
-Bütün koordinatları 0-512 aralığında tut.
-Renkleri #RRGGBB veya "none" biçiminde ver.
-strokeWidth için 0-30 aralığını kullan.
-Path komutları yalnızca M L H V C S Q T Z olsun.
-Şekilleri büyük nesnelerden küçük ayrıntılara doğru sırala.
-Tarif edilen nesneyi tanınabilir biçimde çiz.
-Işık, gölge, doku ve perspektifi şekillerle mümkün olduğunca göster.
-HTML, script veya SVG etiketleri üretme.
+Kullanıcının tarifine uygun alanları doldur.
+Hayvanlarda anatomiyi, kürkü, gözleri, duruşu ve kuyruğu tarif et.
+İnsanlarda yüzü, saçları, kıyafetleri ve pozu tarif et.
+Manzaralarda çevreyi, hava durumunu, ışığı ve perspektifi tarif et.
+Logolarda sembolü, kompozisyonu ve renkleri tarif et.
+Tarif edilmemiş önemli ayrıntıları tutarlı biçimde tamamla.
+image_prompt alanına görsel üretme modelinin doğrudan kullanabileceği
+ayrıntılı bir istem yaz.
 `;
 
     const result = await ai.models.generateContent({
       model: MODEL,
       contents: instruction,
-      config: { responseMimeType: "application/json" }
-    });
-
-    const plan = JSON.parse(result.text || "{}");
-
-    if (!Array.isArray(plan.shapes)) {
-      throw new Error("Geçersiz JSON çizim planı.");
-    }
-
-    const validTypes = new Set(SHAPES);
-    validTypes.add("path");
-
-    const shapes = plan.shapes
-      .filter(s => s && validTypes.has(s.type))
-      .slice(0, 150);
-
-    return res.json({
-      plan: {
-        style: String(plan.style || "cartoon"),
-        background:
-          /^#[0-9a-fA-F]{6}$/.test(plan.background || "")
-            ? plan.background
-            : "#ffffff",
-        lighting: plan.lighting || {},
-        details: plan.details || {},
-        shapes
+      config: {
+        responseMimeType: "application/json"
       }
     });
+
+    const template = JSON.parse(result.text || "{}");
+
+    if (
+      !template.subject ||
+      !template.style ||
+      !template.scene ||
+      typeof template.image_prompt !== "string"
+    ) {
+      throw new Error("Gemini geçerli bir görsel kalıbı döndürmedi.");
+    }
+
+    return res.json({ template });
   } catch (error) {
-    console.error("Drawing plan:", error);
+    console.error("Template error:", error);
     return res.status(500).json({
-      error: "Görsel oluşturulamadı. API anahtarını ve model adını kontrol et."
+      error: "Görsel kalıbı oluşturulamadı."
     });
   }
 });
 
-app.listen(PORT, () => console.log(`Onur AI: ${PORT}`));
+app.post("/api/generate-image", async (req, res) => {
+  try {
+    if (!ai) {
+      return res.status(500).json({ error: "GEMINI_API_KEY ayarlanmamış." });
+    }
+
+    const template = req.body?.template;
+
+    if (
+      !template ||
+      typeof template.image_prompt !== "string" ||
+      template.image_prompt.length > 12000
+    ) {
+      return res.status(400).json({ error: "Geçersiz görsel kalıbı." });
+    }
+
+    const prompt = `
+Create an image using this structured visual template.
+Subject: ${template.subject}
+Style: ${template.style}
+Scene: ${JSON.stringify(template.scene)}
+Subject details: ${JSON.stringify(template.subject_details || {})}
+Lighting: ${JSON.stringify(template.lighting || {})}
+Quality: ${JSON.stringify(template.quality || {})}
+Avoid: ${JSON.stringify(template.negative_prompt || [])}
+
+Detailed image prompt:
+${template.image_prompt}
+
+Return the generated image.
+`;
+
+    const result = await ai.models.generateContent({
+      model: IMAGE_MODEL,
+      contents: prompt,
+      config: {
+        responseModalities: ["TEXT", "IMAGE"]
+      }
+    });
+
+    const parts = result.candidates?.[0]?.content?.parts || [];
+
+    const imagePart = parts.find(part => part.inlineData?.data);
+
+    if (!imagePart) {
+      const textPart = parts.find(part => part.text)?.text;
+
+      return res.status(502).json({
+        error: textPart || "Görsel modeli resim döndürmedi. Model adını kontrol et."
+      });
+    }
+
+    return res.json({
+      image: `data:${imagePart.inlineData.mimeType || "image/png"};base64,${imagePart.inlineData.data}`,
+      mimeType: imagePart.inlineData.mimeType || "image/png"
+    });
+  } catch (error) {
+    console.error("Image generation error:", error);
+    return res.status(500).json({
+      error: "Görsel oluşturulamadı. Görsel modelinin API erişimini kontrol et."
+    });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Onur AI çalışıyor: http://localhost:${PORT}`);
+});
