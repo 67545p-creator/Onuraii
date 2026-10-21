@@ -2,229 +2,193 @@
 import express from "express";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
-const ROOT = path.dirname(fileURLToPath(import.meta.url));
-
-app.use(express.json({ limit: "1mb" }));
-app.use(express.static(path.join(ROOT, "public")));
+const CHAT_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 const ai = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
-const characters = {
-  "Poppy Playtime": [
-    "Huggy Wuggy", "Kissy Missy", "Mommy Long Legs", "Poppy",
-    "CatNap", "DogDay", "Bunzo Bunny", "Boxy Boo", "Yarnaby",
-    "Doey the Doughman", "PJ Pug-a-Pillar", "The Prototype"
-  ],
-  "Five Nights at Freddy's": [
-    "Freddy Fazbear", "Bonnie", "Chica", "Foxy", "Golden Freddy",
-    "Springtrap", "Circus Baby", "Ballora", "Puppet", "Lefty",
-    "Glamrock Freddy", "Roxanne Wolf", "Montgomery Gator", "The Mimic"
-  ],
-  "Friday Night Funkin": [
-    "Boyfriend", "Girlfriend", "Pico", "Daddy Dearest", "Mommy Mearest",
-    "Skid", "Pump", "Senpai", "Tankman", "Whitty", "Tricky", "Hex",
-    "Garcello", "Sarvente", "Ruv", "Tabi", "Agoti", "Zardy"
-  ],
-  "Among Us": [
-    "Red Crewmate", "Blue Crewmate", "Green Crewmate", "Yellow Crewmate",
-    "Black Crewmate", "White Crewmate", "Impostor", "Shapeshifter",
-    "Engineer", "Scientist", "Guardian Angel"
-  ],
-  "Minecraft": [
-    "Steve", "Alex", "Creeper", "Enderman", "Warden", "Zombie",
-    "Skeleton", "Ender Dragon", "Wither", "Iron Golem", "Villager",
-    "Witch", "Blaze", "Ghast", "Piglin", "Herobrine", "Allay", "Sniffer"
-  ],
-  "Garten of Banban": [
-    "Banban", "Banbaleena", "Jumbo Josh", "Opila Bird", "Tarta Bird",
-    "Stinger Flynn", "Nabnab", "Nabnaleena", "Captain Fiddles",
-    "Sheriff Toadster", "Slow Seline", "Bittergiggle", "Syringeon"
-  ],
-  "Sonic": [
-    "Sonic", "Tails", "Knuckles", "Amy Rose", "Shadow", "Silver",
-    "Metal Sonic", "Rouge", "Blaze"
-  ],
-  "Super Mario": [
-    "Mario", "Luigi", "Princess Peach", "Bowser", "Yoshi", "Toad",
-    "Rosalina", "Wario", "Waluigi", "Donkey Kong", "King Boo", "Goomba"
-  ],
-  "Pokemon": [
-    "Pikachu", "Eevee", "Charizard", "Mewtwo", "Lucario", "Gengar",
-    "Greninja", "Bulbasaur", "Squirtle", "Charmander", "Snorlax", "Mimikyu"
-  ],
-  "Roblox": ["Noob", "Bacon Hair", "Guest", "Classic Roblox Avatar"],
-  "Bendy": [
-    "Bendy", "Ink Bendy", "Boris", "Alice Angel", "Ink Demon", "Audrey"
-  ],
-  "Undertale": [
-    "Sans", "Papyrus", "Frisk", "Chara", "Toriel", "Asgore",
-    "Undyne", "Alphys", "Flowey", "Asriel"
-  ],
-  "Cuphead": [
-    "Cuphead", "Mugman", "Ms. Chalice", "The Devil", "King Dice"
-  ],
-  "Plants vs Zombies": [
-    "Peashooter", "Sunflower", "Wall-nut", "Chomper", "Cherry Bomb",
-    "Zombie", "Conehead Zombie", "Buckethead Zombie", "Gargantuar"
-  ],
-  "Horror": [
-    "Granny", "Slendrina", "Slenderman", "Cartoon Cat", "Siren Head",
-    "The Rake", "Hello Neighbor", "Ice Scream"
-  ],
-  "Brawl Stars": [
-    "Shelly", "Colt", "Spike", "Leon", "Crow", "Nita", "Bull",
-    "Jessie", "Dynamike", "El Primo", "Poco", "Surge"
-  ],
-  "Clash": [
-    "Barbarian", "Archer", "Giant", "Wizard", "P.E.K.K.A",
-    "Hog Rider", "Valkyrie", "Goblin", "Knight"
-  ],
-  "Other Games": [
-    "Fall Guys Bean", "Angry Birds Red", "Terraria Guide",
-    "Hollow Knight", "Subway Surfers Jake", "Geometry Dash Cube"
+app.use(express.json({ limit: "1mb" }));
+app.use(express.static("public"));
+
+const STYLES = {
+  auto: "Tarife en uygun görsel stilini seç.",
+  realistic: "Fotogerçekçi, doğal ışık, ayrıntılı dokular.",
+  cartoon: "Kaliteli çizgi film, belirgin konturlar ve canlı renkler.",
+  "3d": "Üç boyutlu render, hacimli nesneler ve gerçekçi gölgeler.",
+  anime: "Anime çizimi, temiz çizgiler ve ayrıntılı gölgelendirme.",
+  horror: "Korku konsept sanatı, atmosferik ışık ve derin gölgeler.",
+  pixel: "Düzenli piksel sanatı, tutarlı piksel boyutu.",
+  sketch: "Ayrıntılı kurşun kalem çizimi ve tarama gölgeleri.",
+  fantasy: "Ayrıntılı fantastik konsept sanatı.",
+  watercolor: "Suluboya, yumuşak renkler ve kâğıt dokusu."
+};
+
+const TEMPLATE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    title: { type: "STRING" },
+    description: { type: "STRING" },
+    style: { type: "STRING" },
+    background: { type: "STRING" },
+    width: { type: "INTEGER" },
+    height: { type: "INTEGER" },
+    layers: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          type: { type: "STRING" },
+          x: { type: "NUMBER" },
+          y: { type: "NUMBER" },
+          width: { type: "NUMBER" },
+          height: { type: "NUMBER" },
+          cx: { type: "NUMBER" },
+          cy: { type: "NUMBER" },
+          r: { type: "NUMBER" },
+          rx: { type: "NUMBER" },
+          ry: { type: "NUMBER" },
+          x1: { type: "NUMBER" },
+          y1: { type: "NUMBER" },
+          x2: { type: "NUMBER" },
+          y2: { type: "NUMBER" },
+          color: { type: "STRING" },
+          stroke: { type: "STRING" },
+          strokeWidth: { type: "NUMBER" },
+          opacity: { type: "NUMBER" },
+          d: { type: "STRING" },
+          text: { type: "STRING" },
+          points: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                x: { type: "NUMBER" },
+                y: { type: "NUMBER" }
+              },
+              required: ["x", "y"]
+            }
+          }
+        },
+        required: ["type"]
+      }
+    }
+  },
+  required: [
+    "title", "description", "style",
+    "background", "width", "height", "layers"
   ]
 };
 
-const READY_ANSWERS = [
-  [/seni kim yaptı|yapımcın kim/i, "Beni Breynot.editzz yaptı."],
-  [/adın ne|ismin ne/i, "Ben Onur AI!"],
-  [/^merhaba[!. ]*$|^selam[!. ]*$/i, "Merhaba! 😊"],
-  [/nasılsın/i, "İyiyim, teşekkürler! Sen nasılsın?"],
-  [/teşekkürler|sağ ol|sağol/i, "Rica ederim! 😊"],
-  [/fnf biliyor musun/i, "Evet! FNF karakterleri hakkında yardımcı olabilirim."],
-  [/among us biliyor musun/i, "Evet! Among Us karakterlerini tanıyorum."],
-  [/minecraft biliyor musun/i, "Evet! Minecraft karakterleri, moblar ve add-on'lar hakkında yardımcı olabilirim."]
-];
-
-function readyAnswer(message) {
-  return READY_ANSWERS.find(([pattern]) => pattern.test(message))?.[1] ?? null;
-}
-
-function parseJson(value) {
-  const cleaned = String(value || "")
-    .trim()
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/, "");
-
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-
-  if (start < 0 || end <= start) {
-    throw new Error("Model geçerli JSON döndürmedi.");
+function ensureAI(res) {
+  if (!ai) {
+    res.status(500).json({
+      error: "API anahtarı eksik. .env dosyasını kontrol et."
+    });
+    return false;
   }
-
-  return JSON.parse(cleaned.slice(start, end + 1));
+  return true;
 }
 
-function safeColor(value, fallback = "#cccccc") {
-  return typeof value === "string" &&
-    /^#[0-9a-fA-F]{6}$/.test(value)
-    ? value
+function boundedNumber(value, fallback = 0, min = -1000, max = 3000) {
+  const n = Number(value);
+  return Number.isFinite(n)
+    ? Math.max(min, Math.min(max, n))
     : fallback;
 }
 
-function safeNumber(value, fallback = 0) {
-  const number = Number(value);
-  return Number.isFinite(number)
-    ? Math.max(-512, Math.min(1024, number))
-    : fallback;
+function safeColor(value, fallback = "#888888") {
+  if (typeof value !== "string") return fallback;
+  return /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
 }
 
-function sanitizePlan(raw) {
-  if (!raw || typeof raw !== "object") {
-    throw new Error("Çizim planı geçersiz.");
-  }
-
-  const allowed = new Set([
-    "rect", "ellipse", "circle", "line", "polygon", "text"
+function normalizeTemplate(data, prompt, style) {
+  const allowedTypes = new Set([
+    "rect", "ellipse", "circle", "line", "polygon", "text", "path"
   ]);
 
-  const layers = (Array.isArray(raw.layers) ? raw.layers : [])
-    .slice(0, 120)
-    .filter(layer => layer && allowed.has(layer.type))
+  const layers = Array.isArray(data.layers) ? data.layers : [];
+
+  const normalizedLayers = layers.slice(0, 160)
+    .filter(layer => layer && allowedTypes.has(layer.type))
     .map(layer => {
-      const out = { type: layer.type };
+      const out = {
+        type: layer.type,
+        color: safeColor(layer.color),
+        stroke: layer.stroke === "none"
+          ? "none"
+          : safeColor(layer.stroke, "none"),
+        strokeWidth: boundedNumber(layer.strokeWidth, 1, 0, 100),
+        opacity: boundedNumber(layer.opacity, 1, 0, 1)
+      };
 
       for (const key of [
-        "x", "y", "width", "height", "radius",
-        "x1", "y1", "x2", "y2", "strokeWidth", "fontSize"
+        "x", "y", "width", "height", "cx", "cy",
+        "r", "rx", "ry", "x1", "y1", "x2", "y2"
       ]) {
         if (layer[key] !== undefined) {
-          out[key] = safeNumber(layer[key]);
+          out[key] = boundedNumber(layer[key]);
         }
       }
 
-      out.color = safeColor(layer.color ?? layer.fill, "#cccccc");
-      out.stroke = safeColor(layer.stroke, "#222222");
-      out.strokeWidth = safeNumber(layer.strokeWidth, 2);
+      if (layer.type === "polygon") {
+        out.points = Array.isArray(layer.points)
+          ? layer.points.slice(0, 100).map(point => ({
+              x: boundedNumber(point?.x),
+              y: boundedNumber(point?.y)
+            }))
+          : [];
+      }
 
-      if (layer.type === "polygon" && Array.isArray(layer.points)) {
-        out.points = layer.points
-          .slice(0, 100)
-          .filter(point => Array.isArray(point) && point.length >= 2)
-          .map(point => [
-            safeNumber(point[0]),
-            safeNumber(point[1])
-          ]);
+      if (layer.type === "path") {
+        out.d = typeof layer.d === "string"
+          ? layer.d.slice(0, 5000)
+          : "";
       }
 
       if (layer.type === "text") {
-        out.text = String(layer.text || "").slice(0, 100);
+        out.text = typeof layer.text === "string"
+          ? layer.text.slice(0, 200)
+          : "";
       }
 
       return out;
     });
 
-  if (!layers.length) {
-    throw new Error("Çizim için geçerli katman bulunamadı.");
-  }
-
   return {
-    name: String(raw.name || "Karakter").slice(0, 100),
-    style: String(raw.style || "cartoon").slice(0, 40),
-    background: safeColor(raw.background, "#ffffff"),
-    layers
+    title: String(data.title || prompt).slice(0, 150),
+    description: String(data.description || "").slice(0, 500),
+    style: String(data.style || style).slice(0, 40),
+    background: safeColor(data.background, "#ffffff"),
+    width: 1024,
+    height: 1024,
+    layers: normalizedLayers
   };
 }
 
-async function generate(prompt) {
-  if (!ai) {
-    throw new Error("GEMINI_API_KEY .env dosyasında ayarlanmalı.");
-  }
-
+async function generateJson(model, prompt, schema) {
   const result = await ai.models.generateContent({
-    model: MODEL,
-    contents: prompt
+    model,
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: schema
+    }
   });
 
-  if (!result.text) {
-    throw new Error("Gemini boş yanıt döndürdü.");
-  }
+  const text = result.text;
+  if (!text) throw new Error("Model boş yanıt döndürdü.");
 
-  return result.text;
+  return JSON.parse(text);
 }
 
 app.get("/api/health", (_req, res) => {
-  res.json({
-    ok: true,
-    model: MODEL,
-    configured: Boolean(ai),
-    characterGroups: Object.keys(characters)
-  });
-});
-
-app.get("/api/characters", (_req, res) => {
-  res.json({ characters });
+  res.json({ ok: true, configured: Boolean(ai), model: CHAT_MODEL });
 });
 
 app.post("/api/chat", async (req, res) => {
@@ -235,163 +199,71 @@ app.post("/api/chat", async (req, res) => {
       return res.status(400).json({ error: "Mesaj boş." });
     }
 
-    const answer = readyAnswer(message);
-    if (answer) {
-      return res.json({ reply: answer });
-    }
+    if (!ensureAI(res)) return;
 
-    const reply = await generate(`
-Sen Onur AI adlı Türkçe konuşan bir asistansın.
-Doğal, anlaşılır ve doğru cevap ver.
-Kullanıcı mesajı:
-${message}
-`);
-
-    res.json({ reply });
-  } catch (error) {
-    console.error("Sohbet hatası:", error);
-    res.status(500).json({
-      error: String(error.message || error).slice(0, 300)
+    const result = await ai.models.generateContent({
+      model: CHAT_MODEL,
+      contents: `
+Sen Onur AI adlı yardımcı bir asistansın.
+Türkçe ve doğal konuş. Normal sohbeti koru.
+Kullanıcı açıkça görsel şablonu istemedikçe JSON döndürme.
+Kullanıcı mesajı: ${message}
+`
     });
+
+    res.json({ reply: result.text || "Yanıt oluşturulamadı." });
+  } catch (error) {
+    console.error("Chat error:", error);
+    res.status(500).json({ error: "Sohbet yanıtı oluşturulamadı." });
   }
 });
 
 app.post("/api/drawing-plan", async (req, res) => {
   try {
-    const userPrompt = String(req.body?.prompt || "").trim();
+    const prompt = String(req.body?.prompt || "").trim();
+    const style = String(req.body?.style || "auto").toLowerCase();
 
-    if (!userPrompt) {
-      return res.status(400).json({ error: "Çizim tarifi boş." });
+    if (!prompt) {
+      return res.status(400).json({ error: "Görsel tarifi boş." });
     }
 
-    const research = parseJson(await generate(`
-Bir karakter tasarım uzmanısın.
-Karakter listesi:
-${JSON.stringify(characters)}
-
-Kullanıcının istediği:
-${userPrompt}
-
-Karakterin bilinen görünüşünü analiz et: kaynak, siluet, vücut
-oranları, yüz, gözler, ağız, uzuvlar, kıyafet, aksesuar ve renkler.
-Gerçek zamanlı internet araştırması yaptığını iddia etme.
-Yalnızca JSON döndür:
-{
-  "name": "karakter adı",
-  "game": "oyun veya kaynak",
-  "silhouette": "görünüş",
-  "details": ["ayırt edici ayrıntı"],
-  "colors": ["#112233"],
-  "style": "çizim stili"
-}
-`));
-
-    const template = parseJson(await generate(`
-512x512 tuvalde karakter için boyasız şekil kalıbı hazırla.
-Araştırma:
-${JSON.stringify(research)}
-
-Kullanıcı isteği:
-${userPrompt}
-
-Karakteri kadraja sığdır. Katmanlar arkadan öne sıralansın.
-Baş, gövde, uzuvlar, yüz ve aksesuarları ayrı katmanlar yap.
-En fazla 120 katman. Gri veya beyaz geçici dolgu kullan.
-Yalnızca JSON döndür. Şema:
-{
-  "name": "karakter adı",
-  "style": "cartoon",
-  "background": "#ffffff",
-  "layers": [
-    {
-      "type": "ellipse",
-      "x": 100,
-      "y": 100,
-      "width": 120,
-      "height": 150,
-      "color": "#cccccc",
-      "stroke": "#222222",
-      "strokeWidth": 3
-    }
-  ]
-}
-
-İzinli şekiller:
-rect, ellipse, circle, line, polygon, text.
-
-Koordinatlar:
-rect ve ellipse için x, y, width, height;
-circle için x, y, radius;
-line için x1, y1, x2, y2;
-polygon için points: [[100,100],[150,80],[180,140]];
-text için x, y, text, fontSize.
-`));
-
-    if (!Array.isArray(template.layers) || template.layers.length === 0) {
-      throw new Error("Karakter kalıbı oluşturulamadı.");
+    if (prompt.length > 4000) {
+      return res.status(400).json({ error: "Görsel tarifi çok uzun." });
     }
 
-    const colored = parseJson(await generate(`
-Sen karakter boyama uzmanısın.
-Araştırma:
-${JSON.stringify(research)}
+    if (!ensureAI(res)) return;
 
-Kalıp:
-${JSON.stringify(template)}
+    const template = await generateJson(
+      CHAT_MODEL,
+      `
+Bir görsel çizim şablonu hazırla.
+Kullanıcı tarifi: ${prompt}
+Görsel stili: ${STYLES[style] || STYLES.auto}
 
-Kalıbı karakterin görünüşüne göre renklendir.
-Katman sayısını, sırasını ve bütün geometrileri aynen koru.
-type, x, y, width, height, radius, x1, y1, x2, y2,
-points, text ve fontSize değerlerini değiştirme.
-Yalnızca color, stroke, strokeWidth ve background değerlerini
-düzenle. Her katmanın rengini ayrı ayrı belirle.
-Yalnızca tam JSON döndür.
-`));
+1024x1024 tuval için geçerli JSON üret.
+Yalnızca JSON verisi oluştur; Markdown, kod çiti ve açıklama ekleme.
+Karakterin yüzünü, gövdesini, uzuvlarını ve önemli ayrıntılarını katmanlara ayır.
+Arka planı ilk, öndeki ayrıntıları son katmanlara koy.
+Mümkün olduğunca ayrıntılı bir kompozisyon oluştur.
+Tüm renkler #RRGGBB biçiminde olsun.
+Koordinatlar sayısal olsun.
+Katman türleri: rect, ellipse, circle, line, polygon, text, path.
+Her katmanın type alanı zorunludur.
+`,
+      TEMPLATE_SCHEMA
+    );
 
-    const coloredLayers = Array.isArray(colored.layers)
-      ? colored.layers
-      : [];
+    const normalized = normalizeTemplate(template, prompt, style);
 
-    const mergedLayers = template.layers.map((original, index) => {
-      const paint = coloredLayers[index] || {};
-
-      return {
-        ...original,
-        color: safeColor(
-          paint.color ?? paint.fill,
-          safeColor(original.color, "#cccccc")
-        ),
-        stroke: safeColor(
-          paint.stroke,
-          safeColor(original.stroke, "#222222")
-        ),
-        strokeWidth: original.strokeWidth ?? 2
-      };
-    });
-
-    const plan = sanitizePlan({
-      ...template,
-      background: safeColor(
-        colored.background,
-        safeColor(template.background, "#ffffff")
-      ),
-      layers: mergedLayers
-    });
-
-    res.json({
-      plan,
-      character: String(research.name || plan.name)
-    });
+    res.json({ template: normalized });
   } catch (error) {
-    console.error("Görsel işlemi:", error);
-
+    console.error("Drawing plan error:", error);
     res.status(500).json({
-      error: "Karakter çizimi hazırlanamadı.",
-      details: String(error.message || error).slice(0, 300)
+      error: "JSON şablonu oluşturulamadı. Model ayarlarını kontrol et."
     });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Onur AI: http://localhost:${PORT}`);
+  console.log(`Onur AI hazır: http://localhost:${PORT}`);
 });
