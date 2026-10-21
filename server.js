@@ -8,39 +8,28 @@ import { fileURLToPath } from "node:url";
 
 dotenv.config();
 
-const app = express();
-const PORT = Number(process.env.PORT) || 3000;
-
-const CHAT_MODEL =
-  process.env.GEMINI_CHAT_MODEL || gemini-3.5-flash-lite";
-
-const IMAGE_MODEL =
-  process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-lite-image";
-
 if (!process.env.GEMINI_API_KEY) {
-  console.error("GEMINI_API_KEY eksik.");
+  console.error("GEMINI_API_KEY ayarlanmamış.");
   process.exit(1);
 }
+
+const app = express();
+const PORT = Number(process.env.PORT) || 3000;
+const MODEL =
+  process.env.GEMINI_CHAT_MODEL || "gemini-3.5-flash-lite";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY
 });
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.dirname(
+  fileURLToPath(import.meta.url)
+);
 
 app.use(express.json({ limit: "2mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-function cleanPrompt(value) {
-  if (typeof value !== "string") return "";
-  return value
-    .replace(/^@gorselolustur\s*/i, "")
-    .trim()
-    .slice(0, 1500);
-}
-
-function getReadyAnswer(message) {
+function readyAnswer(message) {
   const text = message.toLocaleLowerCase("tr-TR");
 
   if (
@@ -51,9 +40,9 @@ function getReadyAnswer(message) {
   }
 
   if (
-    text === "sen kimsin" ||
     text.includes("adın ne") ||
-    text.includes("ismin ne")
+    text.includes("ismin ne") ||
+    text === "sen kimsin"
   ) {
     return "Ben Onur AI!";
   }
@@ -70,36 +59,37 @@ function extractJson(text) {
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
 
-  if (start === -1 || end <= start) {
-    throw new Error("JSON kalıbı oluşturulamadı.");
+  if (start < 0 || end < start) {
+    throw new Error("Geçerli JSON kalıbı alınamadı.");
   }
 
   return JSON.parse(cleaned.slice(start, end + 1));
 }
 
-function number(value, fallback = 0, min = -1000, max = 2000) {
+function num(value, fallback = 0, min = -1000, max = 2000) {
   const n = Number(value);
+
   if (!Number.isFinite(n)) return fallback;
+
   return Math.max(min, Math.min(max, n));
 }
 
-function safeColor(value, fallback = "#222222") {
+function color(value, fallback = "#777777") {
   if (typeof value !== "string") return fallback;
 
-  const color = value.trim();
+  const v = value.trim();
 
   if (
-    /^#[0-9a-f]{3,8}$/i.test(color) ||
-    /^(rgb|rgba|hsl|hsla)\([\d\s.,%+-]+\)$/i.test(color) ||
-    /^[a-z]{1,24}$/i.test(color)
+    /^#[0-9a-f]{3,8}$/i.test(v) ||
+    /^[a-z]{1,24}$/i.test(v)
   ) {
-    return color;
+    return v;
   }
 
   return fallback;
 }
 
-function escapeXml(value) {
+function esc(value) {
   return String(value)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -108,102 +98,100 @@ function escapeXml(value) {
     .replace(/'/g, "&apos;");
 }
 
-function shapeToSvg(shape) {
-  if (!shape || typeof shape !== "object") return "";
+function shapeToSvg(s) {
+  if (!s || typeof s !== "object") return "";
 
-  const type = String(shape.type || "").toLowerCase();
-  const fill = safeColor(shape.fill, "#777777");
-  const stroke = safeColor(shape.stroke, "none");
-  const strokeWidth = number(shape.strokeWidth, 0, 0, 50);
+  const type = String(s.type || "").toLowerCase();
+  const fill = color(s.fill);
+  const stroke = color(s.stroke, "none");
+  const sw = num(s.strokeWidth, 0, 0, 30);
 
   const common =
-    `fill="${escapeXml(fill)}" ` +
-    `stroke="${escapeXml(stroke)}" ` +
-    `stroke-width="${strokeWidth}"`;
+    `fill="${esc(fill)}" ` +
+    `stroke="${esc(stroke)}" ` +
+    `stroke-width="${sw}"`;
 
-  const x = number(shape.x);
-  const y = number(shape.y);
+  const x = num(s.x);
+  const y = num(s.y);
 
   if (type === "rect") {
     return `<rect x="${x}" y="${y}" ` +
-      `width="${number(shape.width, 10, 0, 1000)}" ` +
-      `height="${number(shape.height, 10, 0, 1000)}" ` +
-      `rx="${number(shape.rx, 0, 0, 500)}" ${common}/>`;
-  }
-
-  if (type === "ellipse") {
-    return `<ellipse cx="${x}" cy="${y}" ` +
-      `rx="${number(shape.rx, 10, 0, 1000)}" ` +
-      `ry="${number(shape.ry, 10, 0, 1000)}" ${common}/>`;
+      `width="${num(s.width, 10, 0, 1024)}" ` +
+      `height="${num(s.height, 10, 0, 1024)}" ` +
+      `rx="${num(s.rx, 0, 0, 512)}" ${common}/>`;
   }
 
   if (type === "circle") {
     return `<circle cx="${x}" cy="${y}" ` +
-      `r="${number(shape.r, 10, 0, 1000)}" ${common}/>`;
+      `r="${num(s.r, 10, 0, 1024)}" ${common}/>`;
+  }
+
+  if (type === "ellipse") {
+    return `<ellipse cx="${x}" cy="${y}" ` +
+      `rx="${num(s.rx, 10, 0, 1024)}" ` +
+      `ry="${num(s.ry, 10, 0, 1024)}" ${common}/>`;
+  }
+
+  if (type === "polygon") {
+    if (
+      typeof s.points !== "string" ||
+      !/^[\d\s.,+-]+$/.test(s.points)
+    ) return "";
+
+    return `<polygon points="${s.points}" ${common}/>`;
   }
 
   if (type === "line") {
     return `<line x1="${x}" y1="${y}" ` +
-      `x2="${number(shape.x2)}" y2="${number(shape.y2)}" ` +
-      `fill="none" stroke="${escapeXml(safeColor(shape.stroke, fill))}" ` +
-      `stroke-width="${number(shape.strokeWidth, 2, 0, 50)}"/>`;
-  }
-
-  if (type === "polygon") {
-    if (typeof shape.points !== "string") return "";
-
-    if (!/^[\d\s.,+-]+$/.test(shape.points)) return "";
-
-    return `<polygon points="${shape.points}" ${common}/>`;
+      `x2="${num(s.x2)}" y2="${num(s.y2)}" ` +
+      `stroke="${esc(color(s.stroke, fill))}" ` +
+      `stroke-width="${num(s.strokeWidth, 2, 0, 30)}"/>`;
   }
 
   if (type === "path") {
-    if (typeof shape.d !== "string") return "";
+    if (
+      typeof s.d !== "string" ||
+      !/^[MmLlHhVvCcSsQqTtAaZz0-9.,\s+-]+$/.test(s.d)
+    ) return "";
 
-    if (!/^[MmLlHhVvCcSsQqTtAaZz0-9.,\s+-]+$/.test(shape.d)) {
-      return "";
-    }
-
-    return `<path d="${shape.d}" ${common}/>`;
+    return `<path d="${s.d}" ${common}/>`;
   }
 
   return "";
 }
 
-function renderDrawingSvg(drawing) {
-  if (!drawing || !Array.isArray(drawing.shapes)) {
-    throw new Error("JSON kalıbında shapes listesi bulunamadı.");
+function renderSvg(drawing) {
+  if (
+    !drawing ||
+    !Array.isArray(drawing.shapes) ||
+    drawing.shapes.length === 0 ||
+    drawing.shapes.length > 250
+  ) {
+    throw new Error("JSON kalıbı geçersiz.");
   }
 
-  if (drawing.shapes.length === 0 || drawing.shapes.length > 250) {
-    throw new Error("JSON kalıbındaki şekil sayısı geçersiz.");
-  }
+  const width = Math.round(num(drawing.width, 512, 64, 1024));
+  const height = Math.round(num(drawing.height, 512, 64, 1024));
+  const bg = color(drawing.background, "#151525");
 
-  const width = Math.round(number(drawing.width, 512, 64, 1024));
-  const height = Math.round(number(drawing.height, 512, 64, 1024));
-  const background = safeColor(drawing.background, "#151525");
+  const shapes = drawing.shapes.map(shapeToSvg).join("\n");
 
-  const shapes = drawing.shapes
-    .map(shapeToSvg)
-    .join("\n");
-
-  return `
-    <svg xmlns="http://www.w3.org/2000/svg"
-         width="${width}" height="${height}"
-         viewBox="0 0 ${width} ${height}">
-      <rect width="100%" height="100%"
-            fill="${escapeXml(background)}"/>
-      ${shapes}
-    </svg>
-  `;
+  return `<svg xmlns="http://www.w3.org/2000/svg"
+    width="${width}" height="${height}"
+    viewBox="0 0 ${width} ${height}">
+    <rect width="100%" height="100%" fill="${esc(bg)}"/>
+    ${shapes}
+  </svg>`;
 }
 
-async function createJsonDrawing(prompt) {
-  const instructions = `
-Kullanıcı isteği: ${prompt}
+async function generateJsonTemplate(character) {
+  const prompt = `
+Sen Onur AI için karakter JSON kalıbı hazırlıyorsun.
+
+Karakter isteği: ${character}
 
 Yalnızca geçerli JSON döndür.
-Markdown kod bloğu, açıklama veya başka metin ekleme.
+Markdown, kod bloğu veya açıklama yazma.
 
 Şema:
 {
@@ -224,103 +212,39 @@ Markdown kod bloğu, açıklama veya başka metin ekleme.
   ]
 }
 
-Sadece şu şekil türlerini kullan:
-rect, ellipse, circle, line, polygon, path.
+İzin verilen şekiller:
+rect, circle, ellipse, polygon, line, path.
 
-Koordinatları 512x512 tuvale göre belirle.
-Renkleri ve şekilleri karaktere uygun seç.
-Karakterin ayırt edici özelliklerini, kıyafetlerini,
-renklerini ve duruşunu mümkün olduğunca iyi tarif eden
-çok sayıda katmanlı şekil kullan.
-Şekilleri karakterin arkasından önüne doğru sırala.
-path için yalnızca standart SVG yol komutlarını kullan.
-polygon points alanı yalnızca sayılar, virgül ve boşluk içersin.
-JSON içinde açıklama veya yorum yazma.
+Karakteri mümkün olduğunca ayrıntılı oluştur.
+Yüz, göz, ağız, saç, maske, kıyafet, eller, bacaklar,
+ayakkabılar ve karaktere özgü aksesuarları ekle.
+Renkleri doğru seç ve şekilleri arka plandan ön plana sırala.
+Karakterin tamamı 512x512 tuvalde görünsün.
+Mümkün olduğunca çok anlamlı ve katmanlı şekil kullan.
+JSON dışında hiçbir şey döndürme.
 `;
 
   const response = await ai.models.generateContent({
-    model: CHAT_MODEL,
-    contents: instructions
+    model: MODEL,
+    contents: prompt
   });
 
   if (!response.text) {
-    throw new Error("JSON kalıbı için metin yanıtı alınamadı.");
+    throw new Error("Gemini JSON kalıbı oluşturamadı.");
   }
 
   return extractJson(response.text);
 }
 
-async function createPngFromTemplate(prompt) {
-  const drawing = await createJsonDrawing(prompt);
-  const svg = renderDrawingSvg(drawing);
+async function createPng(character) {
+  const template = await generateJsonTemplate(character);
+  const svg = renderSvg(template);
 
-  return sharp(Buffer.from(svg))
+  const png = await sharp(Buffer.from(svg))
     .png()
     .toBuffer();
-}
 
-async function improvePngWithGemini(pngBuffer, characterName) {
-  const instruction = `
-Bu ${characterName} karakterini güzelleştir bu fotoğrafı.
-
-Gönderdiğim PNG görselini doğrudan düzenle ve yeni bir görsel üret.
-Karakterin kimliğini, tanınabilir özelliklerini, yüzünü,
-kıyafetlerini ve ana tasarımını koru.
-
-Basit taslağı profesyonel kalitede bir oyun karakteri
-görünümüne dönüştür. Ayrıntıları, anatomiyi, malzemeleri,
-ışıklandırmayı, gölgeleri, renkleri ve derinliği iyileştir.
-Yüksek kaliteli, ayrıntılı, temiz bir 3D oyun renderı gibi görünmesini sağla.
-Karakterin tamamını kadrajda tut.
-Gereksiz metin, filigran veya imza ekleme.
-Yalnızca açıklama yazma; düzenlenmiş görsel üret.
-`;
-
-  const response = await ai.models.generateContent({
-    model: IMAGE_MODEL,
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            inlineData: {
-              mimeType: "image/png",
-              data: pngBuffer.toString("base64")
-            }
-          },
-          {
-            text: instruction
-          }
-        ]
-      }
-    ],
-    config: {
-      responseModalities: ["TEXT", "IMAGE"]
-    }
-  });
-
-  const parts =
-    response.candidates?.[0]?.content?.parts || [];
-
-  const imagePart = parts.find(part =>
-    part.inlineData?.data &&
-    part.inlineData?.mimeType?.startsWith("image/")
-  );
-
-  if (!imagePart) {
-    throw new Error(
-      "Gemini görsel döndürmedi. Görsel düzenlemeyi destekleyen bir model seç."
-    );
-  }
-
-  const imageBuffer = Buffer.from(
-    imagePart.inlineData.data,
-    "base64"
-  );
-
-  return sharp(imageBuffer)
-    .png()
-    .toBuffer();
+  return { png, template };
 }
 
 app.post("/api/chat", async (req, res) => {
@@ -333,67 +257,62 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
-    const readyAnswer = getReadyAnswer(message);
+    const answer = readyAnswer(message);
 
-    if (readyAnswer) {
-      return res.json({ text: readyAnswer });
+    if (answer) {
+      return res.json({ text: answer });
     }
 
     const response = await ai.models.generateContent({
-      model: CHAT_MODEL,
+      model: MODEL,
       contents: message
     });
 
-    return res.json({
-      text: response.text || "Şu anda yanıt oluşturamadım."
+    res.json({
+      text: response.text || "Şu anda cevap oluşturamadım."
     });
   } catch (error) {
     console.error("Sohbet hatası:", error.message);
 
-    return res.status(500).json({
-      error: "Mesaj gönderilemedi. API anahtarını ve model ayarını kontrol et."
+    res.status(500).json({
+      error: "Sohbet yanıtı oluşturulamadı. Model adını ve API anahtarını kontrol et."
     });
   }
 });
 
 app.post("/api/image", async (req, res) => {
   try {
-    const prompt = cleanPrompt(req.body?.prompt);
+    let character = String(req.body?.prompt || "")
+      .replace(/^@gorselolustur\s*/i, "")
+      .trim();
 
-    if (!prompt) {
+    if (!character) {
       return res.status(400).json({
-        error: "Bir karakter veya görsel tarifi yaz."
+        error: "Bir karakter adı yaz."
       });
     }
 
-    // 1. JSON kalıbını üret ve PNG'ye çevir.
-    const initialPng = await createPngFromTemplate(prompt);
+    character = character.slice(0, 500);
 
-    // 2. PNG'yi Gemini'ye gönder ve iyileştirilmiş PNG al.
-    const finalPng = await improvePngWithGemini(
-      initialPng,
-      prompt
-    );
+    const { png } = await createPng(character);
 
-    // 3. Son PNG'yi arayüze gönder.
-    return res.json({
-      image: `data:image/png;base64,${finalPng.toString("base64")}`,
+    res.json({
+      image: `data:image/png;base64,${png.toString("base64")}`,
       mimeType: "image/png"
     });
   } catch (error) {
     console.error("Görsel oluşturma hatası:", error.message);
 
-    return res.status(500).json({
-      error: error.message ||
-        "Görsel oluşturulamadı. API ve model ayarlarını kontrol et."
+    res.status(500).json({
+      error: "JSON kalıbı veya PNG oluşturulamadı. Model ayarlarını kontrol et."
     });
   }
 });
 
-app.get("/api/health", (req, res) => {
+app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
 
 app.listen(PORT, () => {
-  console.log(`Onur AI çalışıyor: port ${PORT}`);
+  console.log(`Onur AI hazır: ${PORT}`);
 });
