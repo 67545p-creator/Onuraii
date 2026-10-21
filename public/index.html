@@ -9,12 +9,12 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;height:100dvh;display:flex;flex-direction:column;background:#101114;color:#f5f5f5;font-family:Arial,sans-serif}
-header{height:60px;display:flex;align-items:center;padding:0 18px;border-bottom:1px solid #303036;font-size:20px;font-weight:bold}
-#chat{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth}
+header{height:60px;flex-shrink:0;display:flex;align-items:center;padding:0 18px;border-bottom:1px solid #303036;font-size:20px;font-weight:bold}
+#chat{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth}
 .message{max-width:95%;padding:12px 15px;border-radius:15px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
 .user{align-self:flex-end;background:#343640}
 .assistant{align-self:flex-start;background:#202127}
-.message img{display:block;width:100%;max-width:512px;height:auto;margin-top:8px;border-radius:10px}
+.message img{display:block;width:100%;max-width:512px;height:auto;border-radius:10px;background:#fff}
 .download{display:inline-block;margin-top:10px;color:#b9c9ff;text-decoration:none}
 .download:hover{text-decoration:underline}
 #composer{display:flex;gap:8px;padding:12px;border-top:1px solid #303036;background:#101114}
@@ -27,7 +27,14 @@ button:disabled{opacity:.5;cursor:default}
 #menu{display:none;position:absolute;bottom:55px;left:0;min-width:190px;padding:6px;background:#262730;border:1px solid #41424b;border-radius:12px;z-index:2}
 #menu button{width:100%;text-align:left;background:transparent}
 #menu button:hover{background:#383945}
-.status{opacity:.8}
+.image-result{align-self:flex-start;width:min(100%,540px);padding:0;background:transparent}
+.error{color:#ffaaaa}
+@media(max-width:480px){
+  #chat{padding:10px}
+  #composer{padding:8px;gap:6px}
+  button{padding:12px 10px}
+  .message{max-width:98%}
+}
 </style>
 </head>
 <body>
@@ -47,207 +54,269 @@ button:disabled{opacity:.5;cursor:default}
 </form>
 
 <script>
-const chat=document.getElementById("chat");
-const form=document.getElementById("composer");
-const input=document.getElementById("messageInput");
-const sendButton=document.getElementById("sendButton");
-const menu=document.getElementById("menu");
+const chat = document.getElementById("chat");
+const form = document.getElementById("composer");
+const input = document.getElementById("messageInput");
+const sendButton = document.getElementById("sendButton");
+const menu = document.getElementById("menu");
 
-document.getElementById("plusButton").addEventListener("click",()=>{
-  menu.style.display=menu.style.display==="block"?"none":"block";
+document.getElementById("plusButton").addEventListener("click", () => {
+  menu.style.display = menu.style.display === "block" ? "none" : "block";
 });
 
-document.getElementById("imageCommand").addEventListener("click",()=>{
-  input.value="@gorselolustur ";
+document.getElementById("imageCommand").addEventListener("click", () => {
+  input.value = "@gorselolustur ";
   input.focus();
-  menu.style.display="none";
+  menu.style.display = "none";
 });
 
-function addMessage(text,role="assistant"){
-  const el=document.createElement("div");
-  el.className="message "+role;
-  el.textContent=text;
-  chat.appendChild(el);
-  chat.scrollTop=chat.scrollHeight;
-  return el;
+function addMessage(text, role = "assistant") {
+  const element = document.createElement("div");
+  element.className = "message " + role;
+  element.textContent = text;
+  chat.appendChild(element);
+  chat.scrollTop = chat.scrollHeight;
+  return element;
 }
 
-function safeColor(value,fallback="#777777"){
-  if(value==="none")return "none";
-  return typeof value==="string"&&/^#[0-9a-fA-F]{6}$/.test(value)
-    ?value:fallback;
+function safeColor(value, fallback = "#cccccc") {
+  return typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value)
+    ? value
+    : fallback;
 }
 
-function n(value){
-  const x=Number(value);
-  return Number.isFinite(x)?Math.max(-1000,Math.min(512,x)):0;
+function num(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(-512, Math.min(1024, n)) : fallback;
 }
 
-function renderLayer(layer,index){
-  const fill=safeColor(layer.fill,"#777777");
-  const stroke=safeColor(layer.stroke,"none");
-  const sw=Math.max(0,Math.min(30,n(layer.strokeWidth??1)));
-  const common=`fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"`;
+function escapeXml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
 
-  switch(layer.type){
-    case "circle":
-      return `<circle cx="${n(layer.cx)}" cy="${n(layer.cy)}" r="${Math.max(0,n(layer.r))}" ${common}/>`;
-    case "ellipse":
-      return `<ellipse cx="${n(layer.cx)}" cy="${n(layer.cy)}" rx="${Math.max(0,n(layer.rx))}" ry="${Math.max(0,n(layer.ry))}" ${common}/>`;
-    case "rect":
-      return `<rect x="${n(layer.x)}" y="${n(layer.y)}" width="${Math.max(0,n(layer.width))}" height="${Math.max(0,n(layer.height))}" ${common}/>`;
+function renderLayer(layer) {
+  if (!layer || typeof layer !== "object") return "";
+
+  const fill = safeColor(layer.color ?? layer.fill, "#cccccc");
+  const stroke = safeColor(layer.stroke, "#222222");
+  const sw = Math.max(0, Math.min(30, num(layer.strokeWidth, 2)));
+
+  const common =
+    `fill="${fill}" stroke="${stroke}" stroke-width="${sw}" ` +
+    `stroke-linejoin="round" stroke-linecap="round"`;
+
+  switch (layer.type) {
+    case "rect": {
+      const x = num(layer.x);
+      const y = num(layer.y);
+      const width = Math.max(0, num(layer.width));
+      const height = Math.max(0, num(layer.height));
+
+      return `<rect x="${x}" y="${y}" width="${width}" height="${height}" ${common}/>`;
+    }
+
+    case "ellipse": {
+      const x = num(layer.x);
+      const y = num(layer.y);
+      const width = Math.max(0, num(layer.width));
+      const height = Math.max(0, num(layer.height));
+
+      return `<ellipse cx="${x + width / 2}" cy="${y + height / 2}" rx="${width / 2}" ry="${height / 2}" ${common}/>`;
+    }
+
+    case "circle": {
+      const radius = Math.max(0, num(layer.radius));
+      const cx = layer.cx !== undefined ? num(layer.cx) : num(layer.x) + radius;
+      const cy = layer.cy !== undefined ? num(layer.cy) : num(layer.y) + radius;
+
+      return `<circle cx="${cx}" cy="${cy}" r="${radius}" ${common}/>`;
+    }
+
     case "line":
-      return `<line x1="${n(layer.x1)}" y1="${n(layer.y1)}" x2="${n(layer.x2)}" y2="${n(layer.y2)}" stroke="${stroke}" stroke-width="${sw}"/>`;
-    case "polygon":
-      if(typeof layer.points==="string"&&layer.points.length<=3000&&/^[0-9+.,\s-]+$/.test(layer.points)){
-        return `<polygon points="${layer.points}" ${common}/>`;
-      }
-      return "";
-    case "path":
-      if(typeof layer.d==="string"&&layer.d.length<=3000&&/^[0-9MmLlHhVvCcQqZz+.,\s-]+$/.test(layer.d)){
-        return `<path d="${layer.d}" ${common}/>`;
-      }
-      return "";
-    case "gradient":{
-      const id="grad"+index;
-      const c1=safeColor(layer.color1,"#ffffff");
-      const c2=safeColor(layer.color2,"#777777");
-      const vertical=layer.direction==="vertical";
-      const direction=vertical
-        ?'x1="0%" y1="0%" x2="0%" y2="100%"'
-        :'x1="0%" y1="0%" x2="100%" y2="100%"';
-      return `<defs><linearGradient id="${id}" ${direction}><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}"/></linearGradient></defs><rect x="${n(layer.x)}" y="${n(layer.y)}" width="${Math.max(0,n(layer.width))}" height="${Math.max(0,n(layer.height))}" fill="url(#${id})"/>`;
+      return `<line x1="${num(layer.x1)}" y1="${num(layer.y1)}" x2="${num(layer.x2)}" y2="${num(layer.y2)}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round"/>`;
+
+    case "polygon": {
+      if (!Array.isArray(layer.points)) return "";
+
+      const points = layer.points
+        .filter(point => Array.isArray(point) && point.length >= 2)
+        .slice(0, 100)
+        .map(point => `${num(point[0])},${num(point[1])}`)
+        .join(" ");
+
+      if (!points) return "";
+
+      return `<polygon points="${points}" ${common}/>`;
     }
-    case "text":{
-      const text=String(layer.text||"").slice(0,100)
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;");
-      return `<text x="${n(layer.x)}" y="${n(layer.y)}" fill="${safeColor(layer.fill,"#222222")}" font-size="${Math.max(1,Math.min(100,n(layer.fontSize||20)))}" font-family="Arial,sans-serif">${text}</text>`;
-    }
+
+    case "text":
+      return `<text x="${num(layer.x)}" y="${num(layer.y)}" fill="${fill}" stroke="none" font-size="${Math.max(1, Math.min(100, num(layer.fontSize, 20)))}" font-family="Arial,sans-serif">${escapeXml(layer.text)}</text>`;
+
     default:
       return "";
   }
 }
 
-async function renderPng(plan){
-  if(!plan||!Array.isArray(plan.layers)){
-    throw new Error("Gemini'nin oluşturduğu kalıp geçersiz.");
+async function renderPng(plan) {
+  if (!plan || !Array.isArray(plan.layers) || !plan.layers.length) {
+    throw new Error("Çizim planı geçersiz.");
   }
 
-  const background=safeColor(plan.background,"#ffffff");
-  const layers=plan.layers.slice(0,120).map(renderLayer).join("");
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" fill="${background}"/>${layers}</svg>`;
-  const url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));
+  const background = safeColor(plan.background, "#ffffff");
+  const layers = plan.layers.slice(0, 120).map(renderLayer).join("");
 
-  try{
-    const img=new Image();
-    img.src=url;
-    await img.decode();
+  if (!layers.trim()) {
+    throw new Error("Çizilecek şekil bulunamadı.");
+  }
 
-    const canvas=document.createElement("canvas");
-    canvas.width=512;
-    canvas.height=512;
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">` +
+    `<rect width="512" height="512" fill="${background}"/>${layers}</svg>`;
 
-    const ctx=canvas.getContext("2d");
-    if(!ctx)throw new Error("Canvas kullanılamıyor.");
+  const objectUrl = URL.createObjectURL(
+    new Blob([svg], { type: "image/svg+xml;charset=utf-8" })
+  );
 
-    ctx.drawImage(img,0,0);
+  try {
+    const image = new Image();
+    image.src = objectUrl;
+    await image.decode();
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Canvas kullanılamıyor.");
+
+    context.fillStyle = background;
+    context.fillRect(0, 0, 512, 512);
+    context.drawImage(image, 0, 0, 512, 512);
+
     return canvas.toDataURL("image/png");
-  }finally{
-    URL.revokeObjectURL(url);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
   }
 }
 
-function showImage(container,src){
-  const img=document.createElement("img");
-  img.src=src;
-  img.alt="Onur AI tarafından oluşturulan görsel";
-  container.appendChild(img);
+function showImage(container, source) {
+  container.replaceChildren();
 
-  const link=document.createElement("a");
-  link.className="download";
-  link.href=src;
-  link.download="onur-ai-gorsel.png";
-  link.textContent="PNG indir";
-  container.appendChild(link);
+  const image = document.createElement("img");
+  image.src = source;
+  image.alt = "Oluşturulan görsel";
+  container.appendChild(image);
+
+  const download = document.createElement("a");
+  download.className = "download";
+  download.href = source;
+  download.download = "onur-ai-gorsel.png";
+  download.textContent = "PNG indir";
+  container.appendChild(download);
+
+  chat.scrollTop = chat.scrollHeight;
 }
 
-async function createImage(prompt,status){
-  status.textContent="Görsel kalıbı hazırlanıyor...";
+async function readResponse(response) {
+  const raw = await response.text();
+  let data;
 
-  const response=await fetch("/api/drawing-plan",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({prompt})
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    throw new Error(`Sunucu yanıtı okunamadı (HTTP ${response.status}).`);
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      [data.error, data.details].filter(Boolean).join(" — ") ||
+      `HTTP ${response.status}`
+    );
+  }
+
+  return data;
+}
+
+async function createImage(prompt, resultBox) {
+  const response = await fetch("/api/drawing-plan", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt })
   });
 
-  const data=await response.json();
+  const data = await readResponse(response);
 
-  if(!response.ok){
-    throw new Error(data.error||"Kalıp JSON oluşturulamadı.");
+  if (!data.plan) {
+    throw new Error("Çizim planı alınamadı.");
   }
 
-  status.textContent="Kalıp görsele dönüştürülüyor...";
-  const png=await renderPng(data.plan);
-  status.textContent="";
-  showImage(status,png);
+  const png = await renderPng(data.plan);
+  showImage(resultBox, png);
 }
 
-async function sendMessage(message){
-  sendButton.disabled=true;
-  input.disabled=true;
+async function sendMessage(message) {
+  sendButton.disabled = true;
+  input.disabled = true;
 
-  try{
-    const match=message.match(/^@gorselolustur\b([\s\S]*)/i);
+  try {
+    const match = message.match(/^@gorselolustur\b([\s\S]*)/i);
 
-    if(match){
-      addMessage(message,"user");
-      const prompt=match[1].trim();
+    if (match) {
+      addMessage(message, "user");
 
-      if(!prompt){
-        addMessage("Lütfen görsel tarifini de yaz.");
+      const prompt = match[1].trim();
+
+      if (!prompt) {
+        addMessage("Lütfen bir görsel tarifi yaz.");
         return;
       }
 
-      const status=addMessage("Görsel oluşturuluyor...");
-      status.classList.add("status");
-      await createImage(prompt,status);
-    }else{
-      addMessage(message,"user");
+      const resultBox = document.createElement("div");
+      resultBox.className = "message assistant image-result";
+      chat.appendChild(resultBox);
 
-      const response=await fetch("/api/chat",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({message})
+      try {
+        await createImage(prompt, resultBox);
+      } catch (error) {
+        resultBox.className = "message assistant error";
+        resultBox.textContent = "Görsel oluşturulamadı: " + error.message;
+      }
+    } else {
+      addMessage(message, "user");
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
       });
 
-      const data=await response.json();
-
-      if(!response.ok){
-        throw new Error(data.error||"Yanıt alınamadı.");
-      }
-
-      addMessage(data.text||"Yanıt alınamadı.");
+      const data = await readResponse(response);
+      addMessage(data.reply || "Yanıt alınamadı.");
     }
-  }catch(error){
-    addMessage("Hata: "+error.message);
-  }finally{
-    sendButton.disabled=false;
-    input.disabled=false;
+  } catch (error) {
+    addMessage("Hata: " + error.message);
+  } finally {
+    sendButton.disabled = false;
+    input.disabled = false;
     input.focus();
-    chat.scrollTop=chat.scrollHeight;
+    chat.scrollTop = chat.scrollHeight;
   }
 }
 
-form.addEventListener("submit",async event=>{
+form.addEventListener("submit", async event => {
   event.preventDefault();
-  const message=input.value.trim();
-  if(!message)return;
 
-  input.value="";
-  menu.style.display="none";
+  const message = input.value.trim();
+  if (!message) return;
+
+  input.value = "";
+  menu.style.display = "none";
+
   await sendMessage(message);
 });
 </script>
