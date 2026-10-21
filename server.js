@@ -1,316 +1,390 @@
 
-import "dotenv/config";
 import express from "express";
+import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+dotenv.config();
+
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT || 3000);
 const MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
+const ROOT = path.dirname(fileURLToPath(import.meta.url));
+
+app.use(express.json({ limit: "1mb" }));
+app.use(express.static(path.join(ROOT, "public")));
 
 const ai = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const characters = {
+  "Poppy Playtime": [
+    "Huggy Wuggy", "Kissy Missy", "Mommy Long Legs",
+    "Poppy", "CatNap", "DogDay", "Bunzo Bunny",
+    "Boxy Boo", "Yarnaby", "Doey the Doughman",
+    "PJ Pug-a-Pillar", "The Prototype"
+  ],
+  "Five Nights at Freddy's": [
+    "Freddy Fazbear", "Bonnie", "Chica", "Foxy",
+    "Golden Freddy", "Springtrap", "Circus Baby",
+    "Ballora", "Puppet", "Lefty", "Glamrock Freddy",
+    "Roxanne Wolf", "Montgomery Gator", "The Mimic"
+  ],
+  "Friday Night Funkin": [
+    "Boyfriend", "Girlfriend", "Pico", "Daddy Dearest",
+    "Mommy Mearest", "Skid", "Pump", "Senpai",
+    "Tankman", "Whitty", "Tricky", "Hex", "Garcello",
+    "Sarvente", "Ruv", "Tabi", "Agoti", "Zardy"
+  ],
+  "Among Us": [
+    "Red Crewmate", "Blue Crewmate", "Green Crewmate",
+    "Yellow Crewmate", "Black Crewmate", "White Crewmate",
+    "Impostor", "Shapeshifter", "Engineer", "Scientist",
+    "Guardian Angel"
+  ],
+  "Minecraft": [
+    "Steve", "Alex", "Creeper", "Enderman", "Warden",
+    "Zombie", "Skeleton", "Ender Dragon", "Wither",
+    "Iron Golem", "Villager", "Witch", "Blaze",
+    "Ghast", "Piglin", "Herobrine", "Allay", "Sniffer"
+  ],
+  "Garten of Banban": [
+    "Banban", "Banbaleena", "Jumbo Josh", "Opila Bird",
+    "Tarta Bird", "Stinger Flynn", "Nabnab",
+    "Nabnaleena", "Captain Fiddles", "Sheriff Toadster",
+    "Slow Seline", "Bittergiggle", "Syringeon"
+  ],
+  "Sonic": [
+    "Sonic", "Tails", "Knuckles", "Amy Rose", "Shadow",
+    "Silver", "Metal Sonic", "Rouge", "Blaze"
+  ],
+  "Super Mario": [
+    "Mario", "Luigi", "Princess Peach", "Bowser",
+    "Yoshi", "Toad", "Rosalina", "Wario", "Waluigi",
+    "Donkey Kong", "King Boo", "Goomba"
+  ],
+  "Pokemon": [
+    "Pikachu", "Eevee", "Charizard", "Mewtwo", "Lucario",
+    "Gengar", "Greninja", "Bulbasaur", "Squirtle",
+    "Charmander", "Snorlax", "Mimikyu"
+  ],
+  "Roblox": [
+    "Noob", "Bacon Hair", "Guest", "Classic Roblox Avatar"
+  ],
+  "Bendy": [
+    "Bendy", "Ink Bendy", "Boris", "Alice Angel",
+    "Ink Demon", "Audrey"
+  ],
+  "Undertale": [
+    "Sans", "Papyrus", "Frisk", "Chara", "Toriel",
+    "Asgore", "Undyne", "Alphys", "Flowey", "Asriel"
+  ],
+  "Cuphead": [
+    "Cuphead", "Mugman", "Ms. Chalice", "The Devil", "King Dice"
+  ],
+  "Plants vs Zombies": [
+    "Peashooter", "Sunflower", "Wall-nut", "Chomper",
+    "Cherry Bomb", "Zombie", "Conehead Zombie",
+    "Buckethead Zombie", "Gargantuar"
+  ],
+  "Horror": [
+    "Granny", "Slendrina", "Slenderman", "Cartoon Cat",
+    "Siren Head", "The Rake", "Hello Neighbor",
+    "Ice Scream"
+  ],
+  "Brawl Stars": [
+    "Shelly", "Colt", "Spike", "Leon", "Crow", "Nita",
+    "Bull", "Jessie", "Dynamike", "El Primo", "Poco", "Surge"
+  ],
+  "Clash": [
+    "Barbarian", "Archer", "Giant", "Wizard", "P.E.K.K.A",
+    "Hog Rider", "Valkyrie", "Goblin", "Knight"
+  ],
+  "Other Games": [
+    "Fall Guys Bean", "Angry Birds Red", "Terraria Guide",
+    "Hollow Knight", "Subway Surfers Jake",
+    "Geometry Dash Cube"
+  ]
+};
 
-app.use(express.json({ limit: "2mb" }));
-app.use(express.static(path.join(__dirname, "public")));
+const READY_ANSWERS = [
+  [/seni kim yaptı|yapımcın kim/i, "Beni Breynot.editzz yaptı."],
+  [/adın ne|ismin ne/i, "Ben Onur AI!"],
+  [/^merhaba[!. ]*$|^selam[!. ]*$/i, "Merhaba! 😊"],
+  [/nasılsın/i, "İyiyim, teşekkürler! Sen nasılsın?"],
+  [/teşekkürler|sağ ol|sağol/i, "Rica ederim! 😊"],
+  [/fnf biliyor musun/i, "Evet! FNF karakterleri hakkında yardımcı olabilirim."],
+  [/among us biliyor musun/i, "Evet! Crewmate ve Impostor karakterlerini tanıyorum."],
+  [/minecraft biliyor musun/i, "Evet! Minecraft karakterleri, moblar ve add-on'lar hakkında yardımcı olabilirim."]
+];
 
-app.get("/api/health", (req, res) => {
-  res.json({
-    status: "ok",
+function readyAnswer(message) {
+  return READY_ANSWERS.find(([pattern]) => pattern.test(message))?.[1] ?? null;
+}
+
+function parseJson(text) {
+  const cleaned = String(text || "")
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "");
+
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+
+  if (start < 0 || end <= start) {
+    throw new Error("JSON sonucu alınamadı.");
+  }
+
+  return JSON.parse(cleaned.slice(start, end + 1));
+}
+
+function safeColor(value, fallback = "#cccccc") {
+  return typeof value === "string" &&
+    /^#[0-9a-fA-F]{6}$/.test(value)
+    ? value
+    : fallback;
+}
+
+function safeNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(0, Math.min(512, n)) : fallback;
+}
+
+function sanitizePlan(raw) {
+  const allowed = new Set([
+    "rect", "ellipse", "circle", "line", "polygon", "text"
+  ]);
+
+  const layers = (Array.isArray(raw.layers) ? raw.layers : [])
+    .slice(0, 120)
+    .filter(layer => layer && allowed.has(layer.type))
+    .map(layer => {
+      const out = { type: layer.type };
+
+      for (const key of [
+        "x", "y", "width", "height", "radius",
+        "x1", "y1", "x2", "y2", "strokeWidth", "fontSize"
+      ]) {
+        if (layer[key] !== undefined) {
+          out[key] = safeNumber(layer[key]);
+        }
+      }
+
+      out.color = safeColor(layer.color, "#cccccc");
+      out.stroke = safeColor(layer.stroke, "#222222");
+      out.strokeWidth = safeNumber(layer.strokeWidth, 2);
+
+      if (layer.type === "polygon" && Array.isArray(layer.points)) {
+        out.points = layer.points
+          .slice(0, 100)
+          .filter(p => Array.isArray(p) && p.length >= 2)
+          .map(p => [safeNumber(p[0]), safeNumber(p[1])]);
+      }
+
+      if (layer.type === "text") {
+        out.text = String(layer.text || "").slice(0, 100);
+      }
+
+      return out;
+    });
+
+  if (!layers.length) {
+    throw new Error("Çizim için geçerli katman yok.");
+  }
+
+  return {
+    name: String(raw.name || "Karakter").slice(0, 100),
+    style: String(raw.style || "cartoon").slice(0, 40),
+    background: safeColor(raw.background, "#ffffff"),
+    layers
+  };
+}
+
+async function generate(prompt) {
+  if (!ai) throw new Error("GEMINI_API_KEY .env dosyasında ayarlanmalı.");
+
+  return ai.models.generateContent({
     model: MODEL,
-    chat: true,
-    drawingPlan: true
+    contents: prompt
+  });
+}
+
+app.get("/api/health", (_req, res) => {
+  res.json({
+    ok: true,
+    model: MODEL,
+    configured: Boolean(ai),
+    characterGroups: Object.keys(characters)
   });
 });
 
-// Normal sohbet
+app.get("/api/characters", (_req, res) => {
+  res.json({ characters });
+});
+
 app.post("/api/chat", async (req, res) => {
   try {
-    if (!ai) {
-      return res.status(500).json({
-        error: "GEMINI_API_KEY .env dosyasına eklenmemiş."
-      });
-    }
-
     const message = String(req.body?.message || "").trim();
 
     if (!message) {
-      return res.status(400).json({ error: "Mesaj boş olamaz." });
+      return res.status(400).json({ error: "Mesaj boş." });
     }
 
-    if (message.length > 10000) {
-      return res.status(400).json({ error: "Mesaj çok uzun." });
-    }
+    const answer = readyAnswer(message);
+    if (answer) return res.json({ reply: answer });
 
-    const replies = [
-      {
-        pattern: /seni kim yaptı|geliştiricin kim|yapımcın kim/i,
-        text: "Beni Breynot.Editzz yaptı! 💙"
-      },
-      {
-        pattern: /^(merhaba|selam|sa|hey)\b/i,
-        text: "Merhaba! 😊 Sana nasıl yardımcı olabilirim?"
-      },
-      {
-        pattern: /nasılsın|naber/i,
-        text: "İyiyim, teşekkür ederim! Sen nasılsın? 😊"
-      }
-    ];
+    const result = await generate(`
+Sen Onur AI adlı Türkçe konuşan bir asistansın.
+Doğal, anlaşılır ve doğru cevap ver.
+Kullanıcı: ${message}
+`);
 
-    for (const item of replies) {
-      if (item.pattern.test(message)) {
-        return res.json({ text: item.text });
-      }
-    }
-
-    const result = await ai.models.generateContent({
-      model: MODEL,
-      contents: message
-    });
-
-    return res.json({
-      text: result.text || "Yanıt oluşturulamadı."
-    });
+    res.json({ reply: result.text || "Yanıt oluşturulamadı." });
   } catch (error) {
-    console.error("Chat error:", error);
-
-    return res.status(500).json({
-      error: "Gemini yanıt oluşturamadı. Model adını ve API anahtarını kontrol et."
+    console.error(error);
+    res.status(500).json({
+      error: String(error.message || error).slice(0, 300)
     });
   }
 });
 
-// Gemini'den çizim planı JSON'u alır.
-// PNG, HTML tarafında Canvas ile oluşturulur.
 app.post("/api/drawing-plan", async (req, res) => {
   try {
+    const userPrompt = String(req.body?.prompt || "").trim();
+
+    if (!userPrompt) {
+      return res.status(400).json({ error: "Çizim tarifi boş." });
+    }
+
     if (!ai) {
-      return res.status(500).json({
-        error: "GEMINI_API_KEY .env dosyasına eklenmemiş."
-      });
+      return res.status(500).json({ error: "API anahtarı ayarlanmamış." });
     }
 
-    const prompt = String(req.body?.prompt || "").trim();
+    const characterList = JSON.stringify(characters, null, 2);
 
-    if (!prompt) {
-      return res.status(400).json({
-        error: "Görsel tarifi boş olamaz."
-      });
-    }
+    const researchResult = await generate(`
+Karakter tanıma ve görsel araştırma uzmanısın.
+Aşağıdaki karakter listeleri yalnızca isimleri tanımana yardımcı olur:
+${characterList}
 
-    if (prompt.length > 1500) {
-      return res.status(400).json({
-        error: "Görsel tarifi en fazla 1500 karakter olabilir."
-      });
-    }
+Kullanıcının istediği:
+${userPrompt}
 
-    const instruction = `
-Sen Onur AI için Canvas çizim motoruna uygun görsel planı hazırlıyorsun.
+İstenen karakterin bilinen görünüşünü analiz et:
+- Hangi oyundan olduğu ve doğru karakter adı
+- Siluet ve vücut oranları
+- Baş, yüz, göz, ağız ve uzuv ayrıntıları
+- Giysi, aksesuar ve ayırt edici işaretler
+- Ana ve ikincil renkler
+- Çizimde öne çıkarılması gereken ayrıntılar
 
-Kullanıcının tarifi:
-${JSON.stringify(prompt)}
-
-Harici görsel üretim servisi çağırma.
-Görsel üretim API'si kullanma.
-Yalnızca istenen çizimi tarif eden geçerli JSON üret.
-Açıklama, Markdown veya kod çiti ekleme.
-
-Tam olarak şu yapıyı kullan:
+Kesin bilmediğin ayrıntıları gerçekmiş gibi sunma.
+JSON dışında metin döndürme.
+Şema:
 {
-  "template": "animal",
-  "subject": "kurt",
-  "style": "realistic",
-  "background": "#dce5e8",
+  "name": "karakter adı",
+  "game": "oyun adı veya bilinmiyor",
+  "silhouette": "görünüş",
+  "details": ["ayrıntı"],
+  "colors": ["#112233"],
+  "style": "istenen çizim stili"
+}
+`);
+
+    const research = parseJson(researchResult.text);
+
+    const templateResult = await generate(`
+Karakter için önce BOYASIZ ÇİZİM KALIBI oluştur.
+Araştırma:
+${JSON.stringify(research)}
+
+Kullanıcı isteği:
+${userPrompt}
+
+512x512 tuval kullan.
+Baş, gövde, kollar, bacaklar, yüz ve aksesuarları ayrı katmanlar
+olarak tasarla. Katman sırası arkadan öne doğru olsun.
+Ana şekillerin sınır çizgilerini belirgin tut.
+Boyama aşaması için geçici gri veya beyaz dolgular kullan.
+En fazla 120 katman.
+Yalnızca JSON döndür:
+{
+  "name": "karakter adı",
+  "style": "cartoon",
+  "background": "#ffffff",
   "layers": [
     {
       "type": "ellipse",
-      "cx": 256,
-      "cy": 280,
-      "rx": 120,
-      "ry": 70,
-      "fill": "#777777",
-      "stroke": "#333333",
+      "x": 100,
+      "y": 100,
+      "width": 120,
+      "height": 150,
+      "color": "#cccccc",
+      "stroke": "#222222",
       "strokeWidth": 3
     }
   ]
 }
+İzinli katmanlar: rect, ellipse, circle, line, polygon, text.
+`);
 
-Şablon türleri:
-animal, human, character, landscape, building, vehicle,
-food, flower, tree, fantasy, robot, logo, icon, object.
+    const template = parseJson(templateResult.text);
 
-Desteklenen katman türleri:
+    if (!Array.isArray(template.layers) || template.layers.length === 0) {
+      throw new Error("Karakter kalıbı oluşturulamadı.");
+    }
 
-circle:
-cx, cy, r, fill, stroke, strokeWidth
+    const coloringResult = await generate(`
+Sen dijital karakter boyama uzmanısın.
+Aşağıda araştırma bilgisi ve boyanmamış kalıp var.
 
-ellipse:
-cx, cy, rx, ry, fill, stroke, strokeWidth
+Araştırma:
+${JSON.stringify(research)}
 
-rect:
-x, y, width, height, fill, stroke, strokeWidth
+Kalıp:
+${JSON.stringify(template)}
 
-line:
-x1, y1, x2, y2, stroke, strokeWidth
+Görev:
+- Katmanların geometrisini ve sırasını değiştirme.
+- Her parçaya karakterin görünüşüne uygun renk ver.
+- Göz, ağız, kıyafet, gölge ve aksesuar renklerini ayırt et.
+- Çizgi renklerini karaktere uygun koru.
+- Arka planı uygun seç.
+- Katmanları silme ve yeni katman ekleme.
+- Yalnızca güncellenmiş tam JSON döndür.
+`);
 
-polygon:
-points, fill, stroke, strokeWidth
+    const colored = parseJson(coloringResult.text);
 
-path:
-d, fill, stroke, strokeWidth
+    if (!Array.isArray(colored.layers)) {
+      throw new Error("Boyama sonucu geçersiz.");
+    }
 
-gradient:
-x, y, width, height, color1, color2, direction
-
-text:
-x, y, text, fill, fontSize
-
-Kurallar:
-- Tuval 512x512 boyutundadır.
-- En fazla 120 katman oluştur.
-- Önce arka planı, sonra büyük nesneleri, sonra ayrıntıları çiz.
-- Konunun şekli ve oranları tanınabilir olsun.
-- Mümkün olduğunca çok uygun geometrik ayrıntı kullan.
-- Hayvanlarda kulak, göz, burun, ağız, gövde, bacak ve kuyruk
-  gibi uygun anatomik ayrıntıları ekle.
-- İnsanlarda yüz, saç, gövde, kollar ve bacakları çiz.
-- Manzaralarda gökyüzü, arazi, bitki ve derinlik ayrıntıları ekle.
-- Binalarda duvar, çatı, kapı ve pencereleri ekle.
-- Robotlarda gövde, eklemler, sensörler ve mekanik ayrıntılar ekle.
-- Gerçekçi stil istenirse gölge, ışık vurgusu, renk geçişi ve
-  küçük ayrıntılar kullan.
-- Anime, çizgi film, piksel sanatı, 3B görünüm, karakalem,
-  suluboya ve diğer istenen stillere uygun renk ve şekiller kullan.
-- Renkleri #RRGGBB biçiminde yaz.
-- polygon.points değerini "x,y x,y x,y" biçiminde yaz.
-- path.d yalnızca M, L, H, V, C, Q ve Z komutlarını kullansın.
-- Koordinatlar yaklaşık 0 ile 512 arasında olsun.
-- Kullanıcının istediği konuyu değiştirip başka bir şey çizme.
-- Yalnızca JSON döndür.
-`;
-
-    const result = await ai.models.generateContent({
-      model: MODEL,
-      contents: instruction,
-      config: {
-        responseMimeType: "application/json"
-      }
+    const plan = sanitizePlan({
+      ...template,
+      ...colored,
+      layers: template.layers.map((layer, index) => ({
+        ...layer,
+        ...(colored.layers[index] || {}),
+        type: layer.type
+      }))
     });
 
-    const raw = result.text;
-
-    if (!raw) {
-      throw new Error("Gemini boş yanıt döndürdü.");
-    }
-
-    const plan = JSON.parse(raw);
-
-    if (!plan || !Array.isArray(plan.layers)) {
-      throw new Error("JSON çizim katmanları içermiyor.");
-    }
-
-    const allowedTypes = new Set([
-      "circle",
-      "ellipse",
-      "rect",
-      "line",
-      "polygon",
-      "path",
-      "gradient",
-      "text"
-    ]);
-
-    const numericFields = [
-      "x", "y", "width", "height",
-      "cx", "cy", "r", "rx", "ry",
-      "x1", "y1", "x2", "y2",
-      "strokeWidth", "fontSize"
-    ];
-
-    const layers = plan.layers
-      .filter(layer => layer && allowedTypes.has(layer.type))
-      .slice(0, 120)
-      .map(layer => {
-        const clean = { ...layer };
-
-        for (const key of numericFields) {
-          if (clean[key] !== undefined) {
-            const value = Number(clean[key]);
-
-            clean[key] = Number.isFinite(value)
-              ? Math.max(-1000, Math.min(512, value))
-              : 0;
-          }
-        }
-
-        if (typeof clean.points === "string") {
-          if (
-            clean.points.length > 3000 ||
-            !/^[0-9+.,\s-]+$/.test(clean.points)
-          ) {
-            clean.points = "";
-          }
-        }
-
-        if (typeof clean.d === "string") {
-          if (
-            clean.d.length > 3000 ||
-            !/^[0-9MmLlHhVvCcQqZz+.,\s-]+$/.test(clean.d)
-          ) {
-            clean.d = "";
-          }
-        }
-
-        if (typeof clean.text === "string") {
-          clean.text = clean.text.slice(0, 100);
-        }
-
-        for (const key of ["fill", "stroke", "color1", "color2"]) {
-          if (clean[key] !== undefined) {
-            const color = clean[key];
-
-            if (
-              color !== "none" &&
-              (typeof color !== "string" ||
-                !/^#[0-9a-fA-F]{6}$/.test(color))
-            ) {
-              clean[key] = "#777777";
-            }
-          }
-        }
-
-        return clean;
-      });
-
-    const background =
-      typeof plan.background === "string" &&
-      /^#[0-9a-fA-F]{6}$/.test(plan.background)
-        ? plan.background
-        : "#ffffff";
-
-    return res.json({
-      plan: {
-        template: String(plan.template || "object").slice(0, 50),
-        subject: String(plan.subject || prompt).slice(0, 200),
-        style: String(plan.style || "realistic").slice(0, 50),
-        background,
-        layers
-      }
+    res.json({
+      plan,
+      character: research.name || plan.name
     });
   } catch (error) {
-    console.error("Drawing plan error:", error);
-
-    return res.status(500).json({
-      error: "Görsel JSON'u oluşturulamadı. API anahtarını, model adını ve JSON yanıtını kontrol et."
+    console.error("Görsel işlemi:", error);
+    res.status(500).json({
+      error: "Karakter çizimi hazırlanamadı.",
+      details: String(error.message || error).slice(0, 300)
     });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Onur AI çalışıyor: http://localhost:${PORT}`);
-  console.log(`Gemini modeli: ${MODEL}`);
+  console.log(`Onur AI: http://localhost:${PORT}`);
 });
