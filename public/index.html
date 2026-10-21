@@ -4,39 +4,48 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101114">
 <title>Onur AI</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;height:100dvh;display:flex;flex-direction:column;background:#101114;color:#f5f5f5;font-family:Arial,sans-serif}
-header{padding:16px;border-bottom:1px solid #303036;font-weight:bold;font-size:20px}
-#chat{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
-.message{max-width:90%;padding:12px 15px;border-radius:14px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
+header{height:60px;display:flex;align-items:center;padding:0 18px;border-bottom:1px solid #303036;font-size:20px;font-weight:bold}
+#chat{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth}
+.message{max-width:95%;padding:12px 15px;border-radius:15px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
 .user{align-self:flex-end;background:#343640}
 .assistant{align-self:flex-start;background:#202127}
 .message img{display:block;width:100%;max-width:512px;height:auto;margin-top:8px;border-radius:10px}
-.download{display:block;margin-top:10px;color:#b9c9ff}
-#composer{display:flex;gap:8px;padding:12px;border-top:1px solid #303036}
-input{flex:1;min-width:0;padding:13px;border:1px solid #41424b;border-radius:12px;background:#202127;color:white;font-size:16px}
-button{border:0;border-radius:12px;padding:12px 15px;background:#5865f2;color:white;cursor:pointer}
-button:disabled{opacity:.5}
+.download{display:inline-block;margin-top:10px;color:#b9c9ff;text-decoration:none}
+.download:hover{text-decoration:underline}
+#composer{display:flex;gap:8px;padding:12px;border-top:1px solid #303036;background:#101114}
+input{flex:1;min-width:0;padding:13px;border:1px solid #41424b;border-radius:12px;background:#202127;color:white;font-size:16px;outline:none}
+input:focus{border-color:#7885ff}
+button{border:0;border-radius:12px;padding:12px 15px;background:#5865f2;color:white;font-size:15px;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
 #plusWrap{position:relative}
-#plusButton{background:#30313a;font-size:22px}
-#menu{display:none;position:absolute;bottom:54px;left:0;min-width:180px;padding:6px;background:#262730;border-radius:12px}
+#plusButton{background:#30313a;font-size:22px;min-width:45px}
+#menu{display:none;position:absolute;bottom:55px;left:0;min-width:190px;padding:6px;background:#262730;border:1px solid #41424b;border-radius:12px;z-index:2}
 #menu button{width:100%;text-align:left;background:transparent}
-.status{opacity:.8;font-style:italic}
+#menu button:hover{background:#383945}
+.status{opacity:.8}
 </style>
 </head>
 <body>
 <header>Onur AI</header>
+
 <main id="chat" aria-live="polite"></main>
+
 <form id="composer">
-<div id="plusWrap">
-<button id="plusButton" type="button">+</button>
-<div id="menu"><button id="imageCommand" type="button">@gorselolustur</button></div>
-</div>
-<input id="messageInput" placeholder="Mesajını yaz..." autocomplete="off" required>
-<button id="sendButton" type="submit">Gönder</button>
+  <div id="plusWrap">
+    <button id="plusButton" type="button" aria-label="Komutlar">+</button>
+    <div id="menu">
+      <button id="imageCommand" type="button">@gorselolustur</button>
+    </div>
+  </div>
+  <input id="messageInput" placeholder="Mesajını yaz..." autocomplete="off" required>
+  <button id="sendButton" type="submit">Gönder</button>
 </form>
+
 <script>
 const chat=document.getElementById("chat");
 const form=document.getElementById("composer");
@@ -44,15 +53,15 @@ const input=document.getElementById("messageInput");
 const sendButton=document.getElementById("sendButton");
 const menu=document.getElementById("menu");
 
-document.getElementById("plusButton").onclick=()=>{
+document.getElementById("plusButton").addEventListener("click",()=>{
   menu.style.display=menu.style.display==="block"?"none":"block";
-};
+});
 
-document.getElementById("imageCommand").onclick=()=>{
+document.getElementById("imageCommand").addEventListener("click",()=>{
   input.value="@gorselolustur ";
   input.focus();
   menu.style.display="none";
-};
+});
 
 function addMessage(text,role="assistant"){
   const el=document.createElement("div");
@@ -63,182 +72,87 @@ function addMessage(text,role="assistant"){
   return el;
 }
 
-function num(v,max=512){
-  const n=Number(v);
-  return Number.isFinite(n)?Math.max(-1000,Math.min(max,n)):0;
+function safeColor(value,fallback="#777777"){
+  if(value==="none")return "none";
+  return typeof value==="string"&&/^#[0-9a-fA-F]{6}$/.test(value)
+    ?value:fallback;
 }
 
-function color(v,fallback="#333333"){
-  return v==="none"?"none":
-    typeof v==="string"&&/^#[0-9a-fA-F]{6}$/.test(v)?v:fallback;
+function n(value){
+  const x=Number(value);
+  return Number.isFinite(x)?Math.max(-1000,Math.min(512,x)):0;
 }
 
-function polygon(points,common){
-  return `<polygon points="${points}" ${common}/>`;
-}
-
-function regularPolygon(cx,cy,r,sides,rotation=-Math.PI/2){
-  return Array.from({length:sides},(_,i)=>{
-    const a=rotation+2*Math.PI*i/sides;
-    return `${cx+Math.cos(a)*r},${cy+Math.sin(a)*r}`;
-  }).join(" ");
-}
-
-function renderShape(s){
-  const n=k=>num(s[k]);
-  const fill=color(s.fill||"#dddddd","#dddddd");
-  const stroke=color(s.stroke||"#333333");
-  const sw=num(s.strokeWidth??2,30);
+function renderLayer(layer,index){
+  const fill=safeColor(layer.fill,"#777777");
+  const stroke=safeColor(layer.stroke,"none");
+  const sw=Math.max(0,Math.min(30,n(layer.strokeWidth??1)));
   const common=`fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"`;
-  const cx=n("cx"),cy=n("cy"),r=Math.max(0,n("r"));
 
-  switch(s.type){
+  switch(layer.type){
     case "circle":
-      return `<circle cx="${cx}" cy="${cy}" r="${r}" ${common}/>`;
+      return `<circle cx="${n(layer.cx)}" cy="${n(layer.cy)}" r="${Math.max(0,n(layer.r))}" ${common}/>`;
     case "ellipse":
-      return `<ellipse cx="${cx}" cy="${cy}" rx="${n("rx")}" ry="${n("ry")}" ${common}/>`;
+      return `<ellipse cx="${n(layer.cx)}" cy="${n(layer.cy)}" rx="${Math.max(0,n(layer.rx))}" ry="${Math.max(0,n(layer.ry))}" ${common}/>`;
     case "rect":
-      return `<rect x="${n("x")}" y="${n("y")}" width="${n("width")}" height="${n("height")}" rx="${num(s.rx,100)}" ${common}/>`;
-    case "square":
-      return `<rect x="${n("x")}" y="${n("y")}" width="${num(s.size)}" height="${num(s.size)}" ${common}/>`;
+      return `<rect x="${n(layer.x)}" y="${n(layer.y)}" width="${Math.max(0,n(layer.width))}" height="${Math.max(0,n(layer.height))}" ${common}/>`;
     case "line":
-      return `<line x1="${n("x1")}" y1="${n("y1")}" x2="${n("x2")}" y2="${n("y2")}" stroke="${stroke}" stroke-width="${sw}"/>`;
-    case "triangle":
-      return polygon(regularPolygon(cx,cy,r,3),common);
-    case "hexagon":
-      return polygon(regularPolygon(cx,cy,r,6),common);
-    case "pentagon":
-      return polygon(regularPolygon(cx,cy,r,5),common);
-    case "octagon":
-      return polygon(regularPolygon(cx,cy,r,8),common);
-    case "diamond":
-      return polygon(`${cx},${cy-r} ${cx+r},${cy} ${cx},${cy+r} ${cx-r},${cy}`,common);
-    case "trapezoid":
-      return polygon(`${cx-r},${cy+r/2} ${cx-r*.6},${cy-r} ${cx+r*.6},${cy-r} ${cx+r},${cy+r/2}`,common);
-    case "parallelogram":
-      return polygon(`${cx-r*.6},${cy-r} ${cx+r},${cy-r} ${cx+r*.6},${cy+r} ${cx-r},${cy+r}`,common);
+      return `<line x1="${n(layer.x1)}" y1="${n(layer.y1)}" x2="${n(layer.x2)}" y2="${n(layer.y2)}" stroke="${stroke}" stroke-width="${sw}"/>`;
     case "polygon":
-      if(typeof s.points==="string"&&s.points.length<4000&&/^[0-9+.,\s-]+$/.test(s.points))return polygon(s.points,common);
+      if(typeof layer.points==="string"&&layer.points.length<=3000&&/^[0-9+.,\s-]+$/.test(layer.points)){
+        return `<polygon points="${layer.points}" ${common}/>`;
+      }
       return "";
-    case "star":{
-      const count=Math.max(3,Math.min(24,Math.floor(num(s.pointsCount||5,24))));
-      const inner=Math.max(0,num(s.innerRadius||r*.45));
-      const points=Array.from({length:count*2},(_,i)=>{
-        const a=-Math.PI/2+i*Math.PI/count;
-        const rr=i%2?inner:r;
-        return `${cx+Math.cos(a)*rr},${cy+Math.sin(a)*rr}`;
-      }).join(" ");
-      return polygon(points,common);
-    }
-    case "heart":
-      return `<path d="M ${cx} ${cy+r*.35} C ${cx-r*1.5} ${cy-r*.4} ${cx-r} ${cy-r} ${cx} ${cy-r*.35} C ${cx+r} ${cy-r} ${cx+r*1.5} ${cy-r*.4} ${cx} ${cy+r*.35} Z" ${common}/>`;
-    case "ring":
-      return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${stroke}" stroke-width="${num(s.ringWidth||10,100)}"/>`;
-    case "arc":
-      return `<path d="M ${n("x1")} ${n("y1")} A ${num(s.rx||r)} ${num(s.ry||r)} 0 0 1 ${n("x2")} ${n("y2")}" ${common}/>`;
-    case "cloud":
-      return `<path d="M ${cx-r} ${cy} C ${cx-r*1.4} ${cy-r*.6} ${cx-r*.7} ${cy-r} ${cx-r*.3} ${cy-r*.5} C ${cx} ${cy-r*1.4} ${cx+r*.7} ${cy-r} ${cx+r*.7} ${cy-r*.4} C ${cx+r*1.5} ${cy-r*.5} ${cx+r*1.5} ${cy+r*.3} ${cx+r*.8} ${cy+r*.3} L ${cx-r*.7} ${cy+r*.3} C ${cx-r*1.3} ${cy+r*.3} ${cx-r*1.4} ${cy} ${cx-r} ${cy} Z" ${common}/>`;
-    case "leaf":
-      return `<path d="M ${cx} ${cy+r} Q ${cx-r*1.3} ${cy} ${cx} ${cy-r} Q ${cx+r*3/2} ${cy} ${cx} ${cy+r} Z M ${cx} ${cy+r} L ${cx} ${cy-r}" ${common}/>`;
-    case "flame":
-      return `<path d="M ${cx} ${cy+r} C ${cx-r} ${cy+r*.2} ${cx-r*.4} ${cy} ${cx-r*.2} ${cy-r} C ${cx+r*.1} ${cy-r*.3} ${cx+r*.8} ${cy-r*.2} ${cx+r*.4} ${cy+r*.2} C ${cx+r} ${cy} ${cx+r} ${cy+r*.7} ${cx} ${cy+r} Z" ${common}/>`;
-    case "crescent":
-    case "moon":
-      return `<path d="M ${cx+r*.3} ${cy-r} A ${r} ${r} 0 1 0 ${cx+r*.3} ${cy+r} A ${r*.7} ${r} 0 0 1 ${cx+r*.3} ${cy-r} Z" ${common}/>`;
-    case "semicircle":
-      return `<path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy} Z" ${common}/>`;
-    case "quarter_circle":
-      return `<path d="M ${cx} ${cy} L ${cx+r} ${cy} A ${r} ${r} 0 0 0 ${cx} ${cy-r} Z" ${common}/>`;
-    case "arrow":
-      return `<path d="M ${cx-r} ${cy-r*.25} L ${cx+r*.25} ${cy-r*.25} L ${cx+r*.25} ${cy-r*.7} L ${cx+r} ${cy} L ${cx+r*.25} ${cy+r*.7} L ${cx+r*.25} ${cy+r*.25} L ${cx-r} ${cy+r*.25} Z" ${common}/>`;
-    case "double_arrow":
-      return `<path d="M ${cx-r} ${cy} L ${cx-r*.45} ${cy-r*.6} L ${cx-r*.45} ${cy-r*.25} L ${cx+r*.45} ${cy-r*.25} L ${cx+r*.45} ${cy-r*.6} L ${cx+r} ${cy} L ${cx+r*.45} ${cy+r*.6} L ${cx+r*.45} ${cy+r*.25} L ${cx-r*.45} ${cy+r*.25} L ${cx-r*.45} ${cy+r*.6} Z" ${common}/>`;
-    case "lightning":
-      return polygon(`${cx+r*.1},${cy-r} ${cx-r*.65},${cy+r*.1} ${cx-r*.1},${cy+r*.1} ${cx-r*.3},${cy+r} ${cx+r*.65},${cy-r*.2} ${cx+r*.1},${cy-r*.2}`,common);
-    case "sun":{
-      const rays=Array.from({length:16},(_,i)=>{
-        const a=i*Math.PI/8;
-        const rr=i%2?r*.7:r;
-        return `${cx+Math.cos(a)*rr},${cy+Math.sin(a)*rr}`;
-      }).join(" ");
-      return polygon(rays,common);
-    }
-    case "flower":{
-      let out="";
-      for(let i=0;i<8;i++){
-        const a=i*Math.PI/4;
-        out+=`<ellipse cx="${cx+Math.cos(a)*r*.55}" cy="${cy+Math.sin(a)*r*.55}" rx="${r*.32}" ry="${r*.55}" transform="rotate(${i*45} ${cx+Math.cos(a)*r*.55} ${cy+Math.sin(a)*r*.55})" ${common}/>`;
-      }
-      return out+`<circle cx="${cx}" cy="${cy}" r="${r*.25}" ${common}/>`;
-    }
-    case "petal":
-      return `<path d="M ${cx} ${cy+r} C ${cx-r} ${cy+r*.3} ${cx-r*.7} ${cy-r*.6} ${cx} ${cy-r} C ${cx+r*.7} ${cy-r*.6} ${cx+r} ${cy+r*.3} ${cx} ${cy+r} Z" ${common}/>`;
-    case "eye":
-      return `<path d="M ${cx-r} ${cy} Q ${cx} ${cy-r} ${cx+r} ${cy} Q ${cx} ${cy+r} ${cx-r} ${cy} Z" ${common}/><circle cx="${cx}" cy="${cy}" r="${r*.3}" fill="${stroke}"/>`;
-    case "speech_bubble":
-      return `<path d="M ${cx-r} ${cy-r*.65} Q ${cx-r} ${cy-r} ${cx-r*.5} ${cy-r} L ${cx+r*.6} ${cy-r} Q ${cx+r} ${cy-r} ${cx+r} ${cy-r*.5} L ${cx+r} ${cy+r*.3} Q ${cx+r} ${cy+r*.65} ${cx+r*.5} ${cy+r*.65} L ${cx-r*.2} ${cy+r*.65} L ${cx-r*.6} ${cy+r} L ${cx-r*.55} ${cy+r*.65} Q ${cx-r} ${cy+r*.65} ${cx-r} ${cy+r*.3} Z" ${common}/>`;
-    case "wave":
-      return `<path d="M ${cx-r} ${cy} Q ${cx-r*.5} ${cy-r} ${cx} ${cy} T ${cx+r} ${cy}" fill="none" stroke="${stroke}" stroke-width="${sw}"/>`;
-    case "rays":{
-      let out="";
-      const count=Math.max(3,Math.min(32,Math.floor(num(s.count||12,32))));
-      for(let i=0;i<count;i++){
-        const a=i*Math.PI*2/count;
-        out+=`<line x1="${cx+Math.cos(a)*r*.7}" y1="${cy+Math.sin(a)*r*.7}" x2="${cx+Math.cos(a)*r}" y2="${cy+Math.sin(a)*r}" stroke="${stroke}" stroke-width="${sw}"/>`;
-      }
-      return out;
-    }
-    case "gear":{
-      const count=12,pts=[];
-      for(let i=0;i<count*4;i++){
-        const a=i*Math.PI*2/(count*4);
-        const rr=[r,r*.82,r*.82,r][i%4];
-        pts.push(`${cx+Math.cos(a)*rr},${cy+Math.sin(a)*rr}`);
-      }
-      return polygon(pts.join(" "),common)+`<circle cx="${cx}" cy="${cy}" r="${r*.3}" fill="#101114" stroke="${stroke}" stroke-width="${sw}"/>`;
-    }
-    case "cross":
-      return `<path d="M ${cx-r*.3} ${cy-r} H ${cx+r*.3} V ${cy-r*.3} H ${cx+r} V ${cy+r*.3} H ${cx+r*.3} V ${cy+r} H ${cx-r*.3} V ${cy+r*.3} H ${cx-r} V ${cy-r*.3} H ${cx-r*.3} Z" ${common}/>`;
-    case "plus":
-      return `<path d="M ${cx-r*.25} ${cy-r} H ${cx+r*.25} V ${cy-r*.25} H ${cx+r} V ${cy+r*.25} H ${cx+r*.25} V ${cy+r} H ${cx-r*.25} V ${cy+r*.25} H ${cx-r} V ${cy-r*.25} H ${cx-r*.25} Z" ${common}/>`;
-    case "minus":
-      return `<rect x="${cx-r}" y="${cy-r*.2}" width="${r*2}" height="${r*.4}" ${common}/>`;
-    case "sparkle":
-      return polygon(`${cx},${cy-r} ${cx+r*.2},${cy-r*.2} ${cx+r},${cy} ${cx+r*.2},${cy+r*.2} ${cx},${cy+r} ${cx-r*.2},${cy+r*.2} ${cx-r},${cy} ${cx-r*.2},${cy-r*.2}`,common);
-    case "spiral":{
-      let d="";
-      const turns=Math.max(1,Math.min(8,num(s.turns||3,8)));
-      for(let i=0;i<=100;i++){
-        const a=i/100*Math.PI*2*turns,rr=r*i/100;
-        d+=(i?" L ":"M ")+(cx+Math.cos(a)*rr)+" "+(cy+Math.sin(a)*rr);
-      }
-      return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${sw}"/>`;
-    }
     case "path":
-      if(typeof s.d==="string"&&s.d.length<=4000&&/^[0-9MmLlHhVvCcSsQqTtZz+.,\s-]+$/.test(s.d))return `<path d="${s.d}" ${common}/>`;
+      if(typeof layer.d==="string"&&layer.d.length<=3000&&/^[0-9MmLlHhVvCcQqZz+.,\s-]+$/.test(layer.d)){
+        return `<path d="${layer.d}" ${common}/>`;
+      }
       return "";
+    case "gradient":{
+      const id="grad"+index;
+      const c1=safeColor(layer.color1,"#ffffff");
+      const c2=safeColor(layer.color2,"#777777");
+      const vertical=layer.direction==="vertical";
+      const direction=vertical
+        ?'x1="0%" y1="0%" x2="0%" y2="100%"'
+        :'x1="0%" y1="0%" x2="100%" y2="100%"';
+      return `<defs><linearGradient id="${id}" ${direction}><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}"/></linearGradient></defs><rect x="${n(layer.x)}" y="${n(layer.y)}" width="${Math.max(0,n(layer.width))}" height="${Math.max(0,n(layer.height))}" fill="url(#${id})"/>`;
+    }
+    case "text":{
+      const text=String(layer.text||"").slice(0,100)
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;");
+      return `<text x="${n(layer.x)}" y="${n(layer.y)}" fill="${safeColor(layer.fill,"#222222")}" font-size="${Math.max(1,Math.min(100,n(layer.fontSize||20)))}" font-family="Arial,sans-serif">${text}</text>`;
+    }
     default:
       return "";
   }
 }
 
-async function planToPng(plan){
-  if(!plan||!Array.isArray(plan.shapes))throw new Error("Geçersiz çizim planı.");
+async function renderPng(plan){
+  if(!plan||!Array.isArray(plan.layers)){
+    throw new Error("Gemini'nin oluşturduğu kalıp geçersiz.");
+  }
 
-  const bg=color(plan.background,"#ffffff");
-  const shapes=plan.shapes.slice(0,150).map(renderShape).join("");
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" fill="${bg}"/>${shapes}</svg>`;
+  const background=safeColor(plan.background,"#ffffff");
+  const layers=plan.layers.slice(0,120).map(renderLayer).join("");
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" fill="${background}"/>${layers}</svg>`;
   const url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));
 
   try{
     const img=new Image();
     img.src=url;
     await img.decode();
+
     const canvas=document.createElement("canvas");
     canvas.width=512;
     canvas.height=512;
+
     const ctx=canvas.getContext("2d");
     if(!ctx)throw new Error("Canvas kullanılamıyor.");
+
     ctx.drawImage(img,0,0);
     return canvas.toDataURL("image/png");
   }finally{
@@ -246,58 +160,79 @@ async function planToPng(plan){
   }
 }
 
-async function makeImage(prompt){
-  const r=await fetch("/api/drawing-plan",{
+function showImage(container,src){
+  const img=document.createElement("img");
+  img.src=src;
+  img.alt="Onur AI tarafından oluşturulan görsel";
+  container.appendChild(img);
+
+  const link=document.createElement("a");
+  link.className="download";
+  link.href=src;
+  link.download="onur-ai-gorsel.png";
+  link.textContent="PNG indir";
+  container.appendChild(link);
+}
+
+async function createImage(prompt,status){
+  status.textContent="Görsel kalıbı hazırlanıyor...";
+
+  const response=await fetch("/api/drawing-plan",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({prompt})
   });
-  const data=await r.json();
-  if(!r.ok)throw new Error(data.error||"Görsel oluşturulamadı.");
-  return planToPng(data.plan);
-}
 
-function displayImage(container,src){
-  const img=document.createElement("img");
-  img.src=src;
-  img.alt="Oluşturulan görsel";
-  container.appendChild(img);
-  const a=document.createElement("a");
-  a.className="download";
-  a.href=src;
-  a.download="onur-ai-gorsel.png";
-  a.textContent="PNG indir";
-  container.appendChild(a);
+  const data=await response.json();
+
+  if(!response.ok){
+    throw new Error(data.error||"Kalıp JSON oluşturulamadı.");
+  }
+
+  status.textContent="Kalıp görsele dönüştürülüyor...";
+  const png=await renderPng(data.plan);
+  status.textContent="";
+  showImage(status,png);
 }
 
 async function sendMessage(message){
   sendButton.disabled=true;
   input.disabled=true;
+
   try{
     const match=message.match(/^@gorselolustur\b([\s\S]*)/i);
+
     if(match){
       addMessage(message,"user");
       const prompt=match[1].trim();
-      if(!prompt){addMessage("Bir görsel tarifi yaz.");return;}
+
+      if(!prompt){
+        addMessage("Lütfen görsel tarifini de yaz.");
+        return;
+      }
+
       const status=addMessage("Görsel oluşturuluyor...");
       status.classList.add("status");
-      const png=await makeImage(prompt);
-      status.classList.remove("status");
-      status.textContent="";
-      displayImage(status,png);
+      await createImage(prompt,status);
     }else{
       addMessage(message,"user");
-      const r=await fetch("/api/chat",{
+
+      const response=await fetch("/api/chat",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({message})
       });
-      const data=await r.json();
-      if(!r.ok)throw new Error(data.error||"Yanıt alınamadı.");
+
+      const data=await response.json();
+
+      if(!response.ok){
+        throw new Error(data.error||"Yanıt alınamadı.");
+      }
+
       addMessage(data.text||"Yanıt alınamadı.");
     }
-  }catch(e){
-    addMessage("Hata: "+e.message);
+  }catch(error){
+    addMessage("Hata: "+error.message);
   }finally{
     sendButton.disabled=false;
     input.disabled=false;
@@ -306,14 +241,15 @@ async function sendMessage(message){
   }
 }
 
-form.onsubmit=async e=>{
-  e.preventDefault();
+form.addEventListener("submit",async event=>{
+  event.preventDefault();
   const message=input.value.trim();
   if(!message)return;
+
   input.value="";
   menu.style.display="none";
   await sendMessage(message);
-};
+});
 </script>
 </body>
 </html>
