@@ -10,7 +10,7 @@ const ai = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
-const CHAT_MODEL = "gemini-3.1-flash";
+const CHAT_MODEL = "gemini-3.1-flash-lite";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 app.use(express.json({ limit: "110mb" }));
