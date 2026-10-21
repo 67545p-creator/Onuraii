@@ -4,7 +4,7 @@ const { GoogleGenAI } = require("@google/genai");
 
 const app = express();
 
-app.use(express.json({ limit: "20kb" }));
+app.use(express.json({ limit: "110mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 const API_KEY = process.env.GEMINI_API_KEY;
