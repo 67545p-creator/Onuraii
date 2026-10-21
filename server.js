@@ -13,7 +13,7 @@ const ai = process.env.GEMINI_API_KEY
 const CHAT_MODEL = "gemini-3.1-flash";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "110mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.post("/api/chat", async (req, res) => {
