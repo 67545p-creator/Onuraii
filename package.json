@@ -1,8 +1,7 @@
 
 {
   "name": "onur-ai",
-  "version": "2.3.0",
-  "private": true,
+  "version": "3.0.1",
   "type": "module",
   "scripts": {
     "start": "node server.js"
@@ -10,6 +9,8 @@
   "dependencies": {
     "@google/genai": "latest",
     "dotenv": "latest",
-    "express": "latest"
+    "express": "latest",
+    "sharp": "latest"
   }
 }
+
