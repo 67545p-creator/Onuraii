@@ -7,7 +7,7 @@ dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const CHAT_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 
 const ai = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
@@ -16,18 +16,152 @@ const ai = process.env.GEMINI_API_KEY
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static("public"));
 
-const STYLES = {
-  auto: "Tarife en uygun görsel stilini seç.",
-  realistic: "Fotogerçekçi, doğal ışık, ayrıntılı dokular.",
-  cartoon: "Kaliteli çizgi film, belirgin konturlar ve canlı renkler.",
-  "3d": "Üç boyutlu render, hacimli nesneler ve gerçekçi gölgeler.",
-  anime: "Anime çizimi, temiz çizgiler ve ayrıntılı gölgelendirme.",
-  horror: "Korku konsept sanatı, atmosferik ışık ve derin gölgeler.",
-  pixel: "Düzenli piksel sanatı, tutarlı piksel boyutu.",
-  sketch: "Ayrıntılı kurşun kalem çizimi ve tarama gölgeleri.",
-  fantasy: "Ayrıntılı fantastik konsept sanatı.",
-  watercolor: "Suluboya, yumuşak renkler ve kâğıt dokusu."
-};
+const READY_ANSWERS = [
+  {
+    patterns: [/seni kim yaptı/i, /yapımcın kim/i, /seni kim oluşturdu/i],
+    reply: "Beni Breynot.editzz yaptı."
+  },
+  {
+    patterns: [/adın ne/i, /ismin ne/i, /sen kimsin/i],
+    reply: "Ben Onur AI! Sohbet edebilir, kod yazabilir ve çizim şablonları hazırlayabilirim."
+  },
+  {
+    patterns: [/^merhaba[!. ]*$/i, /^selam[!. ]*$/i, /^hey[!. ]*$/i],
+    reply: "Merhaba! Sana nasıl yardımcı olabilirim?"
+  },
+  {
+    patterns: [/nasılsın/i, /ne haber/i],
+    reply: "İyiyim, teşekkürler! Sen nasılsın?"
+  },
+  {
+    patterns: [/teşekkürler/i, /sağ ol/i, /sağol/i],
+    reply: "Rica ederim!"
+  },
+  {
+    patterns: [/kaç yaşındasın/i, /yaşın kaç/i],
+    reply: "Ben bir yapay zekâyım; insanlar gibi bir yaşım yok."
+  },
+  {
+    patterns: [/ne yapabilirsin/i, /neler yapabiliyorsun/i],
+    reply: "Sohbet, kodlama, oyun karakterleri ve JSON çizim şablonları konusunda yardımcı olabilirim."
+  },
+  {
+    patterns: [/minecraft biliyor musun/i, /minecraft hakkında/i],
+    reply: "Evet! Minecraft add-on, entity, animasyon, komut ve animation controller kodlarında yardımcı olabilirim."
+  },
+  {
+    patterns: [/poppy playtime biliyor musun/i],
+    reply: "Evet! Huggy Wuggy, Kissy Missy, CatNap, DogDay ve diğer Poppy Playtime karakterleri hakkında konuşabiliriz."
+  },
+  {
+    patterns: [/fnf biliyor musun/i, /friday night funkin biliyor musun/i],
+    reply: "Evet! Friday Night Funkin karakterleri, modları ve müzik savaşları hakkında yardımcı olabilirim."
+  },
+  {
+    patterns: [/among us biliyor musun/i],
+    reply: "Evet! Among Us, Impostor ve oyun rolleri hakkında konuşabiliriz."
+  },
+  {
+    patterns: [/garten of banban biliyor musun/i],
+    reply: "Evet! Banban, Jumbo Josh, Opila Bird, Nabnab ve diğer karakterleri konuşabiliriz."
+  },
+  {
+    patterns: [/fnaf biliyor musun/i, /five nights at freddy/i],
+    reply: "Evet! Freddy Fazbear, Bonnie, Chica, Foxy ve diğer FNAF karakterlerini biliyorum."
+  },
+  {
+    patterns: [/cartoon cat kim/i, /cartoon cat nedir/i],
+    reply: "Cartoon Cat, Trevor Henderson tarafından tasarlanan bir korku karakteridir."
+  },
+  {
+    patterns: [/siren head kim/i, /siren head nedir/i],
+    reply: "Siren Head, Trevor Henderson tarafından tasarlanan, siren benzeri başı bulunan uzun bir korku yaratığıdır."
+  },
+  {
+    patterns: [/kod yazabilir misin/i, /programlama biliyor musun/i],
+    reply: "Evet! JavaScript, HTML, CSS, Node.js ve Minecraft add-on kodlarında yardımcı olabilirim."
+  },
+  {
+    patterns: [/görsel nasıl oluştururum/i, /resim nasıl yaparım/i],
+    reply: "Örneğin @gorselolustur uçan bir kedi yazabilirsin."
+  },
+  {
+    patterns: [/iyi geceler/i],
+    reply: "İyi geceler!"
+  },
+  {
+    patterns: [/günaydın/i],
+    reply: "Günaydın!"
+  },
+  {
+    patterns: [/seni seviyorum/i],
+    reply: "Çok naziksin! Sana yardımcı olmak için buradayım."
+  }
+];
+
+function findReadyAnswer(message) {
+  const normalized = message.toLocaleLowerCase("tr-TR").trim();
+  return READY_ANSWERS.find(item =>
+    item.patterns.some(pattern => pattern.test(normalized))
+  )?.reply ?? null;
+}
+
+function ensureAI(res) {
+  if (!ai) {
+    res.status(500).json({
+      error: "GEMINI_API_KEY ayarlanmamış."
+    });
+    return false;
+  }
+  return true;
+}
+
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true });
+});
+
+app.post("/api/chat", async (req, res) => {
+  try {
+    const message = String(req.body?.message || "").trim();
+
+    if (!message) {
+      return res.status(400).json({ error: "Mesaj boş." });
+    }
+
+    if (message.length > 12000) {
+      return res.status(400).json({ error: "Mesaj çok uzun." });
+    }
+
+    const readyAnswer = findReadyAnswer(message);
+    if (readyAnswer) {
+      return res.json({ reply: readyAnswer });
+    }
+
+    if (!ensureAI(res)) return;
+
+    const result = await ai.models.generateContent({
+      model: MODEL,
+      contents: `
+Sen Onur AI adlı Türkçe konuşan bir asistansın.
+Doğal ve anlaşılır cevaplar ver.
+Normal sohbeti koru.
+Kullanıcı istemedikçe JSON döndürme.
+Oyun karakterleri, kodlama ve tasarım konularında yardımcı ol.
+Emin olmadığın bilgileri uydurma.
+
+Kullanıcı: ${message}
+`
+    });
+
+    res.json({
+      reply: result.text || "Yanıt oluşturulamadı."
+    });
+  } catch {
+    res.status(500).json({
+      error: "Yanıt oluşturulamadı."
+    });
+  }
+});
 
 const TEMPLATE_SCHEMA = {
   type: "OBJECT",
@@ -85,46 +219,38 @@ const TEMPLATE_SCHEMA = {
   ]
 };
 
-function ensureAI(res) {
-  if (!ai) {
-    res.status(500).json({
-      error: "API anahtarı eksik. .env dosyasını kontrol et."
-    });
-    return false;
-  }
-  return true;
+function safeColor(value, fallback = "#888888") {
+  return typeof value === "string" &&
+    /^#[0-9a-fA-F]{6}$/.test(value)
+    ? value
+    : fallback;
 }
 
-function boundedNumber(value, fallback = 0, min = -1000, max = 3000) {
+function num(value, fallback = 0, min = -1000, max = 3000) {
   const n = Number(value);
   return Number.isFinite(n)
     ? Math.max(min, Math.min(max, n))
     : fallback;
 }
 
-function safeColor(value, fallback = "#888888") {
-  if (typeof value !== "string") return fallback;
-  return /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
-}
-
 function normalizeTemplate(data, prompt, style) {
-  const allowedTypes = new Set([
-    "rect", "ellipse", "circle", "line", "polygon", "text", "path"
+  const allowed = new Set([
+    "rect", "ellipse", "circle", "line",
+    "polygon", "text", "path"
   ]);
 
-  const layers = Array.isArray(data.layers) ? data.layers : [];
-
-  const normalizedLayers = layers.slice(0, 160)
-    .filter(layer => layer && allowedTypes.has(layer.type))
+  const layers = (Array.isArray(data.layers) ? data.layers : [])
+    .slice(0, 160)
+    .filter(layer => layer && allowed.has(layer.type))
     .map(layer => {
-      const out = {
+      const item = {
         type: layer.type,
         color: safeColor(layer.color),
         stroke: layer.stroke === "none"
           ? "none"
           : safeColor(layer.stroke, "none"),
-        strokeWidth: boundedNumber(layer.strokeWidth, 1, 0, 100),
-        opacity: boundedNumber(layer.opacity, 1, 0, 1)
+        strokeWidth: num(layer.strokeWidth, 1, 0, 100),
+        opacity: num(layer.opacity, 1, 0, 1)
       };
 
       for (const key of [
@@ -132,32 +258,32 @@ function normalizeTemplate(data, prompt, style) {
         "r", "rx", "ry", "x1", "y1", "x2", "y2"
       ]) {
         if (layer[key] !== undefined) {
-          out[key] = boundedNumber(layer[key]);
+          item[key] = num(layer[key]);
         }
       }
 
       if (layer.type === "polygon") {
-        out.points = Array.isArray(layer.points)
+        item.points = Array.isArray(layer.points)
           ? layer.points.slice(0, 100).map(point => ({
-              x: boundedNumber(point?.x),
-              y: boundedNumber(point?.y)
+              x: num(point?.x),
+              y: num(point?.y)
             }))
           : [];
       }
 
       if (layer.type === "path") {
-        out.d = typeof layer.d === "string"
+        item.d = typeof layer.d === "string"
           ? layer.d.slice(0, 5000)
           : "";
       }
 
       if (layer.type === "text") {
-        out.text = typeof layer.text === "string"
+        item.text = typeof layer.text === "string"
           ? layer.text.slice(0, 200)
           : "";
       }
 
-      return out;
+      return item;
     });
 
   return {
@@ -167,56 +293,9 @@ function normalizeTemplate(data, prompt, style) {
     background: safeColor(data.background, "#ffffff"),
     width: 1024,
     height: 1024,
-    layers: normalizedLayers
+    layers
   };
 }
-
-async function generateJson(model, prompt, schema) {
-  const result = await ai.models.generateContent({
-    model,
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: schema
-    }
-  });
-
-  const text = result.text;
-  if (!text) throw new Error("Model boş yanıt döndürdü.");
-
-  return JSON.parse(text);
-}
-
-app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, configured: Boolean(ai), model: CHAT_MODEL });
-});
-
-app.post("/api/chat", async (req, res) => {
-  try {
-    const message = String(req.body?.message || "").trim();
-
-    if (!message) {
-      return res.status(400).json({ error: "Mesaj boş." });
-    }
-
-    if (!ensureAI(res)) return;
-
-    const result = await ai.models.generateContent({
-      model: CHAT_MODEL,
-      contents: `
-Sen Onur AI adlı yardımcı bir asistansın.
-Türkçe ve doğal konuş. Normal sohbeti koru.
-Kullanıcı açıkça görsel şablonu istemedikçe JSON döndürme.
-Kullanıcı mesajı: ${message}
-`
-    });
-
-    res.json({ reply: result.text || "Yanıt oluşturulamadı." });
-  } catch (error) {
-    console.error("Chat error:", error);
-    res.status(500).json({ error: "Sohbet yanıtı oluşturulamadı." });
-  }
-});
 
 app.post("/api/drawing-plan", async (req, res) => {
   try {
@@ -233,37 +312,59 @@ app.post("/api/drawing-plan", async (req, res) => {
 
     if (!ensureAI(res)) return;
 
-    const template = await generateJson(
-      CHAT_MODEL,
-      `
-Bir görsel çizim şablonu hazırla.
-Kullanıcı tarifi: ${prompt}
-Görsel stili: ${STYLES[style] || STYLES.auto}
+    const styleDescriptions = {
+      auto: "Tarife uygun bir stil seç.",
+      realistic: "Fotogerçekçi görünümlü kompozisyon.",
+      cartoon: "Renkli çizgi film stili.",
+      "3d": "Üç boyutlu render stili.",
+      anime: "Anime çizim stili.",
+      horror: "Atmosferik korku konsept sanatı.",
+      pixel: "Piksel sanatı.",
+      sketch: "Kurşun kalem eskizi.",
+      fantasy: "Fantastik konsept sanatı.",
+      watercolor: "Suluboya stili."
+    };
 
-1024x1024 tuval için geçerli JSON üret.
-Yalnızca JSON verisi oluştur; Markdown, kod çiti ve açıklama ekleme.
-Karakterin yüzünü, gövdesini, uzuvlarını ve önemli ayrıntılarını katmanlara ayır.
-Arka planı ilk, öndeki ayrıntıları son katmanlara koy.
-Mümkün olduğunca ayrıntılı bir kompozisyon oluştur.
-Tüm renkler #RRGGBB biçiminde olsun.
-Koordinatlar sayısal olsun.
+    const result = await ai.models.generateContent({
+      model: MODEL,
+      contents: `
+Yalnızca geçerli JSON üret. Markdown veya açıklama ekleme.
+Kullanıcının tarifine uygun, ayrıntılı ve katmanlı bir çizim şablonu hazırla.
+
+Tarif: ${prompt}
+Stil: ${styleDescriptions[style] || styleDescriptions.auto}
+
+Tuval 1024x1024 boyutunda.
+Önce arka plan, sonra arkadaki nesneler, en son öndeki ayrıntılar.
+Karakterin başı, yüzü, gövdesi ve uzuvlarını ayrı şekillerle oluştur.
+Renkler #RRGGBB biçiminde olmalı.
 Katman türleri: rect, ellipse, circle, line, polygon, text, path.
-Her katmanın type alanı zorunludur.
+Koordinatlar sayı olmalı.
+
+Şablon alanları:
+title, description, style, background, width, height, layers.
 `,
-      TEMPLATE_SCHEMA
-    );
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: TEMPLATE_SCHEMA
+      }
+    });
 
-    const normalized = normalizeTemplate(template, prompt, style);
+    if (!result.text) {
+      throw new Error("Empty response");
+    }
 
-    res.json({ template: normalized });
-  } catch (error) {
-    console.error("Drawing plan error:", error);
+    const data = JSON.parse(result.text);
+    res.json({
+      template: normalizeTemplate(data, prompt, style)
+    });
+  } catch {
     res.status(500).json({
-      error: "JSON şablonu oluşturulamadı. Model ayarlarını kontrol et."
+      error: "JSON çizim şablonu oluşturulamadı."
     });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Onur AI hazır: http://localhost:${PORT}`);
+  console.log(`Onur AI: http://localhost:${PORT}`);
 });
