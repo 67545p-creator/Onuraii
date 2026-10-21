@@ -3,564 +3,109 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#101114">
 <title>Onur AI</title>
 <style>
 *{box-sizing:border-box}
-:root{color-scheme:dark;--bg:#101114;--panel:#18191e;--panel2:#23242b;--border:#303139;--text:#f5f5f7;--muted:#a6a7b0;--accent:#a78bfa}
-html,body{margin:0;width:100%;height:100%;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text)}
-body{display:flex;overflow:hidden}
-button,textarea,select{font:inherit}
-button{cursor:pointer}
-.sidebar{width:265px;flex-shrink:0;background:#15161a;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:13px;gap:12px}
-.side-top{display:flex;align-items:center;justify-content:space-between;padding:5px 3px 13px}
-.brand{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:750}
-.logo{width:35px;height:35px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#a78bfa,#6366f1);font-weight:900}
-.new-chat{display:flex;align-items:center;gap:10px;border:1px solid var(--border);background:var(--panel);color:white;border-radius:12px;padding:12px;text-align:left}
-.new-chat:hover,.history-item:hover{background:#272830}
-.history-title{font-size:12px;color:var(--muted);padding:8px 5px 2px}
-.history{display:flex;flex-direction:column;gap:4px;overflow:auto}
-.history-item{display:flex;align-items:center;gap:8px;border:0;border-radius:9px;padding:10px;background:transparent;color:#eee;text-align:left;overflow:hidden}
-.history-item span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.history-item.active{background:#292a32}
-.side-bottom{margin-top:auto;border-top:1px solid var(--border);padding-top:12px;font-size:13px;color:var(--muted)}
-.main{min-width:0;flex:1;display:flex;flex-direction:column;height:100dvh}
-.topbar{height:61px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--border)}
-.topbar-title{font-weight:700;font-size:17px}
-.mobile-menu{display:none}
-#chat{flex:1;overflow:auto;padding:24px 17px 32px;scroll-behavior:smooth}
-.messages{width:100%;max-width:790px;margin:auto;display:flex;flex-direction:column;gap:24px}
-.welcome{text-align:center;margin:auto;padding:45px 10px}
-.welcome-logo{width:70px;height:70px;border-radius:24px;display:grid;place-items:center;margin:0 auto 20px;background:linear-gradient(135deg,#a78bfa,#6366f1);font-size:35px;font-weight:900}
-.welcome h1{font-size:clamp(27px,5vw,38px);letter-spacing:-1px;margin:0 0 12px}
-.welcome p{color:var(--muted);margin:0}
-.message{display:flex;align-items:flex-start;gap:12px;animation:appear .16s ease-out}
-@keyframes appear{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-.avatar{width:34px;height:34px;border-radius:11px;background:#272830;display:grid;place-items:center;flex-shrink:0;font-weight:800}
-.message.assistant .avatar{background:linear-gradient(135deg,#a78bfa,#6366f1)}
-.content{min-width:0;flex:1;line-height:1.7;overflow-wrap:anywhere;padding-top:3px}
-.content p{margin:0 0 10px}
-.content p:last-child{margin-bottom:0}
-.message.user{justify-content:flex-end}
-.message.user .avatar{display:none}
-.message.user .content{flex:initial;max-width:88%;padding:11px 15px;border-radius:17px;background:#282930;border:1px solid #363740}
-.content pre{white-space:pre;overflow:auto;background:#0c0d10;border:1px solid var(--border);padding:14px;border-radius:12px}
-.content img{display:block;max-width:100%;width:auto;max-height:650px;object-fit:contain;border-radius:14px;margin-top:10px}
-.image-actions{display:flex;gap:8px;margin-top:10px}
-.small-btn{background:#222329;color:white;border:1px solid var(--border);padding:8px 12px;border-radius:10px}
-.composer-area{padding:10px 16px calc(14px + env(safe-area-inset-bottom));flex-shrink:0}
-.composer{max-width:790px;margin:auto;border:1px solid #3a3b44;border-radius:23px;background:#1b1c21;padding:10px}
-#prompt{display:block;width:100%;resize:none;max-height:170px;min-height:42px;border:0;outline:0;background:transparent;color:white;padding:8px;font-size:16px;line-height:1.5}
-#prompt::placeholder{color:#a4a5ae}
-.composer-tools{display:flex;align-items:center;gap:8px}
-.tool-btn{width:40px;height:40px;border:1px solid var(--border);border-radius:13px;background:#292a31;color:white;font-size:21px}
-#send{height:41px;min-width:44px;border:0;border-radius:13px;background:#f5f5f7;color:#17171a;font-size:22px;font-weight:800}
-#send:disabled{opacity:.5}
-.spacer{flex:1}
-.plus-wrap{position:relative}
-.menu{position:absolute;bottom:49px;left:0;width:230px;background:#222329;border:1px solid #3a3b44;border-radius:15px;padding:6px;box-shadow:0 12px 35px #0008;z-index:5}
-.menu[hidden]{display:none}
-.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:12px;border:0;border-radius:10px;background:transparent;color:white;text-align:left}
-.menu button:hover{background:#34353d}
-#style{max-width:135px;background:#292a31;color:white;border:1px solid #3a3b44;border-radius:11px;padding:9px 7px;font-size:12px;outline:0}
-@media(max-width:700px){
-.sidebar{position:fixed;inset:0 auto 0 0;width:280px;z-index:20;transform:translateX(-102%);transition:transform .2s;box-shadow:10px 0 40px #0006}
-.sidebar.open{transform:translateX(0)}
-.mobile-menu{display:block;width:38px;height:38px;border:1px solid var(--border);background:var(--panel);color:white;border-radius:11px;font-size:20px}
-.topbar{gap:12px;padding:0 12px}
-.topbar-title{margin-right:auto}
-#chat{padding:20px 12px}
-.composer-area{padding-left:9px;padding-right:9px}
-#style{max-width:110px}
-}
+body{margin:0;height:100dvh;display:flex;flex-direction:column;background:#101114;color:#f5f5f7;font-family:Arial,sans-serif}
+header{padding:17px 20px;border-bottom:1px solid #292a30;font-size:20px;font-weight:700}
+#messages{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+.message{max-width:850px;width:fit-content;padding:13px 15px;border-radius:16px;background:#202127;overflow-wrap:anywhere;line-height:1.5}
+.user{align-self:flex-end;background:#343640}
+.assistant{align-self:flex-start}
+.result{display:block;width:100%;max-width:600px;height:auto;border-radius:12px;margin-top:8px}
+.download{display:inline-block;margin-top:10px;color:#b8caff;text-decoration:none}
+#status{padding:0 18px 8px;min-height:18px;color:#bcbcc5;font-size:13px}
+form{display:flex;gap:9px;padding:12px;border-top:1px solid #292a30;background:#151619}
+input{flex:1;min-width:0;padding:15px;border:1px solid #383941;border-radius:13px;background:#222329;color:white;font-size:16px;outline:none}
+button{padding:0 18px;border:0;border-radius:13px;background:#777dff;color:white;font-weight:bold}
+button:disabled{opacity:.55}
 </style>
 </head>
 <body>
-
-<aside class="sidebar" id="sidebar">
-  <div class="side-top">
-    <div class="brand"><div class="logo">O</div><span>Onur AI</span></div>
-  </div>
-  <button class="new-chat" id="newChat"><span>＋</span> Yeni sohbet</button>
-  <div class="history-title">Sohbetler</div>
-  <div class="history" id="history"></div>
-  <div class="side-bottom">Onur AI</div>
-</aside>
-
-<main class="main">
-  <header class="topbar">
-    <button class="mobile-menu" id="mobileMenu" aria-label="Menüyü aç">☰</button>
-    <div class="topbar-title" id="chatTitle">Onur AI</div>
-    <button class="tool-btn" id="clearChat" title="Yeni sohbet" aria-label="Yeni sohbet">＋</button>
-  </header>
-
-  <section id="chat">
-    <div class="messages" id="messages">
-      <div class="welcome" id="welcome">
-        <div class="welcome-logo">O</div>
-        <h1>Nasıl yardımcı olabilirim?</h1>
-        <p>Bir şey sor veya hayalindeki görseli tarif et.</p>
-      </div>
-    </div>
-  </section>
-
-  <footer class="composer-area">
-    <form class="composer" id="form">
-      <textarea id="prompt" rows="1" placeholder="Onur AI'ya bir şey sor..." autocomplete="off"></textarea>
-      <div class="composer-tools">
-        <div class="plus-wrap">
-          <button type="button" class="tool-btn" id="plusBtn" aria-label="Araçlar">＋</button>
-          <div class="menu" id="plusMenu" hidden>
-            <button type="button" id="imageCommand"><span>▧</span> Görsel oluştur</button>
-            <button type="button" id="clearCommand"><span>＋</span> Yeni sohbet</button>
-          </div>
-        </div>
-        <select id="style" aria-label="Görsel stili">
-          <option value="auto">Otomatik</option>
-          <option value="realistic">Gerçekçi</option>
-          <option value="cartoon">Çizgi film</option>
-          <option value="3d">3D</option>
-          <option value="anime">Anime</option>
-          <option value="horror">Korku</option>
-          <option value="pixel">Piksel</option>
-          <option value="sketch">Eskiz</option>
-          <option value="fantasy">Fantastik</option>
-          <option value="watercolor">Suluboya</option>
-        </select>
-        <div class="spacer"></div>
-        <button type="submit" id="send" aria-label="Gönder">↑</button>
-      </div>
-    </form>
-  </footer>
+<header>Onur AI</header>
+<main id="messages">
+<div class="message assistant">Merhaba! Sana nasıl yardımcı olabilirim?</div>
 </main>
-
+<div id="status" aria-live="polite"></div>
+<form id="form">
+<input id="prompt" placeholder="Mesaj yaz veya @gorselolustur El Primo yaz..." autocomplete="off" required>
+<button id="send" type="submit">Gönder</button>
+</form>
 <script>
-const $ = id => document.getElementById(id);
-const messages = $("messages");
-const chat = $("chat");
-const promptBox = $("prompt");
-const plusMenu = $("plusMenu");
+const form=document.getElementById("form");
+const input=document.getElementById("prompt");
+const messages=document.getElementById("messages");
+const statusBox=document.getElementById("status");
+const send=document.getElementById("send");
 
-let chats = [];
-let currentId = null;
-let busy = false;
-
-function makeId(){
-  return Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+function addMessage(text,role="assistant"){
+  const el=document.createElement("div");
+  el.className="message "+role;
+  el.textContent=text;
+  messages.appendChild(el);
+  messages.scrollTop=messages.scrollHeight;
 }
 
-function saveChats(){
-  try {
-    localStorage.setItem("onur-ai-chats-v1", JSON.stringify(chats));
-  } catch {}
+function addImage(data){
+  const box=document.createElement("div");
+  box.className="message assistant";
+  const img=document.createElement("img");
+  img.className="result";
+  img.src=data;
+  img.alt="Oluşturulan PNG";
+  const link=document.createElement("a");
+  link.className="download";
+  link.href=data;
+  link.download="onur-ai.png";
+  link.textContent="PNG olarak indir";
+  box.append(img,link);
+  messages.appendChild(box);
+  messages.scrollTop=messages.scrollHeight;
 }
 
-function currentChat(){
-  return chats.find(c => c.id === currentId);
+async function requestJson(url,body){
+  const response=await fetch(url,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(body)
+  });
+  const data=await response.json();
+  if(!response.ok) throw new Error(data.error||"İstek başarısız.");
+  return data;
 }
 
-function newChat(){
-  const item = { id: makeId(), title: "Yeni sohbet", messages: [] };
-  chats.unshift(item);
-  currentId = item.id;
-  saveChats();
-  renderChat();
-  renderHistory();
-  promptBox.focus();
-  $("sidebar").classList.remove("open");
-}
+form.addEventListener("submit",async e=>{
+  e.preventDefault();
+  const message=input.value.trim();
+  if(!message)return;
 
-function loadChats(){
-  try {
-    const stored = JSON.parse(localStorage.getItem("onur-ai-chats-v1") || "[]");
-    if (Array.isArray(stored)) {
-      chats = stored.filter(c =>
-        c && typeof c.id === "string" && Array.isArray(c.messages)
-      );
+  addMessage(message,"user");
+  input.value="";
+  input.disabled=true;
+  send.disabled=true;
+
+  const isImage=/^@gorselolustur\b/i.test(message);
+  statusBox.textContent=isImage?"Görsel oluşturuluyor...":"";
+
+  try{
+    if(isImage){
+      const data=await requestJson("/api/image",{prompt:message});
+      addImage(data.image);
+    }else{
+      const data=await requestJson("/api/chat",{message});
+      addMessage(data.text||"Yanıt alınamadı.");
     }
-  } catch {
-    chats = [];
-  }
-
-  if (!chats.length) {
-    const item = { id: makeId(), title: "Yeni sohbet", messages: [] };
-    chats = [item];
-  }
-
-  currentId = chats[0].id;
-  renderChat();
-  renderHistory();
-}
-
-function renderHistory(){
-  const container = $("history");
-  container.replaceChildren();
-
-  for (const item of chats) {
-    const button = document.createElement("button");
-    button.className = "history-item" + (item.id === currentId ? " active" : "");
-
-    const icon = document.createElement("span");
-    icon.textContent = "▤";
-
-    const title = document.createElement("span");
-    title.textContent = item.title || "Yeni sohbet";
-
-    button.append(icon, title);
-    button.onclick = () => {
-      currentId = item.id;
-      renderChat();
-      renderHistory();
-      $("sidebar").classList.remove("open");
-    };
-
-    container.appendChild(button);
-  }
-}
-
-function renderChat(){
-  messages.replaceChildren();
-  const item = currentChat();
-
-  $("chatTitle").textContent = item?.title || "Onur AI";
-
-  if (!item || !item.messages.length) {
-    const welcome = document.createElement("div");
-    welcome.className = "welcome";
-    welcome.id = "welcome";
-
-    const logo = document.createElement("div");
-    logo.className = "welcome-logo";
-    logo.textContent = "O";
-
-    const h1 = document.createElement("h1");
-    h1.textContent = "Nasıl yardımcı olabilirim?";
-
-    const p = document.createElement("p");
-    p.textContent = "Bir şey sor veya hayalindeki görseli tarif et.";
-
-    welcome.append(logo, h1, p);
-    messages.appendChild(welcome);
-    return;
-  }
-
-  for (const message of item.messages) {
-    renderMessage(message.role, message.text, message.image, false);
-  }
-  scrollBottom();
-}
-
-function scrollBottom(){
-  chat.scrollTop = chat.scrollHeight;
-}
-
-function renderMessage(role, text, image, persist = true){
-  $("welcome")?.remove();
-
-  const wrapper = document.createElement("div");
-  wrapper.className = "message " + role;
-
-  const avatar = document.createElement("div");
-  avatar.className = "avatar";
-  avatar.textContent = role === "assistant" ? "O" : "S";
-
-  const content = document.createElement("div");
-  content.className = "content";
-
-  if (text) {
-    const p = document.createElement("p");
-    p.textContent = text;
-    content.appendChild(p);
-  }
-
-  if (image) addImage(content, image);
-
-  wrapper.append(avatar, content);
-  messages.appendChild(wrapper);
-  scrollBottom();
-
-  if (persist) {
-    const item = currentChat();
-    if (item) {
-      item.messages.push({ role, text: text || "", image: image || null });
-
-      if (item.title === "Yeni sohbet" && role === "user" && text) {
-        item.title = text.slice(0, 36);
-        $("chatTitle").textContent = item.title;
-      }
-
-      saveChats();
-      renderHistory();
-    }
-  }
-
-  return { wrapper, content };
-}
-
-function addImage(content, dataUrl){
-  const img = document.createElement("img");
-  img.src = dataUrl;
-  img.alt = "Onur AI görseli";
-  content.appendChild(img);
-
-  const actions = document.createElement("div");
-  actions.className = "image-actions";
-
-  const download = document.createElement("button");
-  download.className = "small-btn";
-  download.textContent = "PNG indir";
-  download.onclick = () => {
-    const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = "onur-ai-gorsel.png";
-    a.click();
-  };
-
-  actions.appendChild(download);
-  content.appendChild(actions);
-}
-
-function safeColor(color, fallback = "#888888"){
-  return typeof color === "string" && /^#[0-9a-fA-F]{6}$/.test(color)
-    ? color : fallback;
-}
-
-function drawTemplate(template){
-  const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 512;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Çizim oluşturulamadı.");
-
-  ctx.scale(.5, .5);
-  ctx.fillStyle = safeColor(template.background, "#ffffff");
-  ctx.fillRect(0, 0, 1024, 1024);
-
-  for (const layer of (template.layers || []).slice(0,160)){
-    ctx.save();
-    ctx.globalAlpha = Math.max(0, Math.min(1, Number(layer.opacity ?? 1)));
-    ctx.fillStyle = safeColor(layer.color);
-    ctx.strokeStyle = layer.stroke === "none" ? "transparent" : safeColor(layer.stroke);
-    ctx.lineWidth = Math.max(0, Math.min(100, Number(layer.strokeWidth ?? 1)));
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-
-    const x = Number(layer.x || 0);
-    const y = Number(layer.y || 0);
-    const w = Number(layer.width || 0);
-    const h = Number(layer.height || 0);
-
-    if (layer.type === "rect"){
-      ctx.fillRect(x,y,w,h);
-      if (layer.stroke !== "none") ctx.strokeRect(x,y,w,h);
-    } else if (layer.type === "ellipse"){
-      ctx.beginPath();
-      ctx.ellipse(x+w/2,y+h/2,Math.abs(w/2),Math.abs(h/2),0,0,Math.PI*2);
-      ctx.fill();
-      if (layer.stroke !== "none") ctx.stroke();
-    } else if (layer.type === "circle"){
-      ctx.beginPath();
-      ctx.arc(Number(layer.cx||0),Number(layer.cy||0),Math.abs(Number(layer.r||0)),0,Math.PI*2);
-      ctx.fill();
-      if (layer.stroke !== "none") ctx.stroke();
-    } else if (layer.type === "line"){
-      ctx.beginPath();
-      ctx.moveTo(Number(layer.x1||0),Number(layer.y1||0));
-      ctx.lineTo(Number(layer.x2||0),Number(layer.y2||0));
-      ctx.stroke();
-    } else if (layer.type === "polygon" && Array.isArray(layer.points) && layer.points.length >= 3){
-      ctx.beginPath();
-      ctx.moveTo(Number(layer.points[0].x),Number(layer.points[0].y));
-      for (const point of layer.points.slice(1)) ctx.lineTo(Number(point.x),Number(point.y));
-      ctx.closePath();
-      ctx.fill();
-      if (layer.stroke !== "none") ctx.stroke();
-    } else if (layer.type === "path" && typeof layer.d === "string"){
-      try {
-        const path = new Path2D(layer.d);
-        ctx.fill(path);
-        if (layer.stroke !== "none") ctx.stroke(path);
-      } catch {}
-    } else if (layer.type === "text"){
-      ctx.font = "bold 32px system-ui,sans-serif";
-      ctx.textBaseline = "top";
-      ctx.fillText(String(layer.text||"").slice(0,200),x,y,900);
-    }
-
-    ctx.restore();
-  }
-
-  return canvas.toDataURL("image/png");
-}
-
-async function createImage(prompt){
-  const responseMessage = renderMessage("assistant","",null,false);
-  const content = responseMessage.content;
-
-  try {
-    const response = await fetch("/api/drawing-plan",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({prompt,style:$("style").value})
-    });
-
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Görsel oluşturulamadı.");
-    if (!data.template) throw new Error("Çizim şablonu bulunamadı.");
-
-    const png = drawTemplate(data.template);
-    content.replaceChildren();
-
-    const title = document.createElement("p");
-    title.textContent = data.template.title || "Görsel";
-    content.appendChild(title);
-    addImage(content,png);
-
-    const item = currentChat();
-    if (item) {
-      item.messages.push({
-        role:"assistant",
-        text:title.textContent,
-        image:png
-      });
-      saveChats();
-    }
-  } catch(error) {
-    content.replaceChildren();
-    const p = document.createElement("p");
-    p.textContent = error.message || "Görsel oluşturulamadı.";
-    content.appendChild(p);
-
-    const item = currentChat();
-    if (item) {
-      item.messages.push({role:"assistant",text:p.textContent,image:null});
-      saveChats();
-    }
-  }
-}
-
-async function sendChat(prompt){
-  const responseMessage = renderMessage("assistant","",null,false);
-  const content = responseMessage.content;
-
-  try {
-    const response = await fetch("/api/chat",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({message:prompt})
-    });
-
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Yanıt alınamadı.");
-
-    content.replaceChildren();
-    const p = document.createElement("p");
-    p.textContent = data.reply || "Yanıt oluşturulamadı.";
-    content.appendChild(p);
-
-    const item = currentChat();
-    if (item) {
-      item.messages.push({role:"assistant",text:p.textContent,image:null});
-      saveChats();
-    }
-  } catch(error) {
-    content.replaceChildren();
-    const p = document.createElement("p");
-    p.textContent = error.message || "Bir hata oluştu.";
-    content.appendChild(p);
-
-    const item = currentChat();
-    if (item) {
-      item.messages.push({role:"assistant",text:p.textContent,image:null});
-      saveChats();
-    }
-  }
-}
-
-async function submitPrompt(){
-  if (busy) return;
-  const prompt = promptBox.value.trim();
-  if (!prompt) return;
-
-  busy = true;
-  $("send").disabled = true;
-  plusMenu.hidden = true;
-
-  renderMessage("user",prompt,null,true);
-  promptBox.value = "";
-  promptBox.style.height = "auto";
-
-  try {
-    const match = prompt.match(/^@gorselolustur\b\s*([\s\S]*)$/i);
-    if (match) {
-      const drawingPrompt = match[1].trim();
-      if (!drawingPrompt) {
-        renderMessage("assistant","Örnek: @gorselolustur uçan bir kedi",null,true);
-      } else {
-        await createImage(drawingPrompt);
-      }
-    } else {
-      await sendChat(prompt);
-    }
-  } finally {
-    busy = false;
-    $("send").disabled = false;
-    promptBox.focus();
-    scrollBottom();
-  }
-}
-
-$("form").addEventListener("submit",event=>{
-  event.preventDefault();
-  submitPrompt();
-});
-
-promptBox.addEventListener("input",()=>{
-  promptBox.style.height = "auto";
-  promptBox.style.height = Math.min(promptBox.scrollHeight,170)+"px";
-});
-
-promptBox.addEventListener("keydown",event=>{
-  if (event.key === "Enter" && !event.shiftKey){
-    event.preventDefault();
-    submitPrompt();
+  }catch(error){
+    addMessage(error.message||"Bir hata oluştu.");
+  }finally{
+    input.disabled=false;
+    send.disabled=false;
+    statusBox.textContent="";
+    input.focus();
   }
 });
-
-$("plusBtn").addEventListener("click",()=>{
-  plusMenu.hidden = !plusMenu.hidden;
-});
-
-$("imageCommand").addEventListener("click",()=>{
-  plusMenu.hidden = true;
-  const prefix = "@gorselolustur ";
-  if (!promptBox.value.trim()) {
-    promptBox.value = prefix;
-  } else if (!promptBox.value.trimStart().toLowerCase().startsWith("@gorselolustur")) {
-    promptBox.value = prefix + promptBox.value.trim();
-  }
-  promptBox.focus();
-  promptBox.setSelectionRange(promptBox.value.length,promptBox.value.length);
-});
-
-$("clearCommand").addEventListener("click",()=>{
-  plusMenu.hidden = true;
-  newChat();
-});
-
-$("newChat").addEventListener("click",newChat);
-$("clearChat").addEventListener("click",newChat);
-
-$("mobileMenu").addEventListener("click",()=>{
-  $("sidebar").classList.toggle("open");
-});
-
-document.addEventListener("click",event=>{
-  if (!event.target.closest(".plus-wrap")) plusMenu.hidden = true;
-});
-
-loadChats();
 </script>
 </body>
 </html>
