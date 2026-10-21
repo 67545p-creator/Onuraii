@@ -3,321 +3,647 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#101114">
 <title>Onur AI</title>
+
 <style>
-*{box-sizing:border-box}
-body{margin:0;height:100dvh;display:flex;flex-direction:column;background:#101114;color:#f5f5f5;font-family:Arial,sans-serif}
-header{height:60px;flex-shrink:0;display:flex;align-items:center;padding:0 18px;border-bottom:1px solid #303036;font-size:20px;font-weight:bold}
-#chat{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth}
-.message{max-width:95%;padding:12px 15px;border-radius:15px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
-.user{align-self:flex-end;background:#343640}
-.assistant{align-self:flex-start;background:#202127}
-.message img{display:block;width:100%;max-width:512px;height:auto;border-radius:10px;background:#fff}
-.download{display:inline-block;margin-top:10px;color:#b9c9ff;text-decoration:none}
-.download:hover{text-decoration:underline}
-#composer{display:flex;gap:8px;padding:12px;border-top:1px solid #303036;background:#101114}
-input{flex:1;min-width:0;padding:13px;border:1px solid #41424b;border-radius:12px;background:#202127;color:white;font-size:16px;outline:none}
-input:focus{border-color:#7885ff}
-button{border:0;border-radius:12px;padding:12px 15px;background:#5865f2;color:white;font-size:15px;cursor:pointer}
-button:disabled{opacity:.5;cursor:default}
-#plusWrap{position:relative}
-#plusButton{background:#30313a;font-size:22px;min-width:45px}
-#menu{display:none;position:absolute;bottom:55px;left:0;min-width:190px;padding:6px;background:#262730;border:1px solid #41424b;border-radius:12px;z-index:2}
-#menu button{width:100%;text-align:left;background:transparent}
-#menu button:hover{background:#383945}
-.image-result{align-self:flex-start;width:min(100%,540px);padding:0;background:transparent}
-.error{color:#ffaaaa}
-@media(max-width:480px){
-  #chat{padding:10px}
-  #composer{padding:8px;gap:6px}
-  button{padding:12px 10px}
-  .message{max-width:98%}
+:root {
+  color-scheme: dark;
+  --bg: #101114;
+  --panel: #18191e;
+  --panel2: #222329;
+  --text: #f5f5f7;
+  --muted: #a4a5ae;
+  --accent: #a78bfa;
+  --border: #303138;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+button, textarea, select { font: inherit; }
+button { cursor: pointer; }
+header {
+  height: 62px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 17px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(16,17,20,.96);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 18px;
+  font-weight: 750;
+}
+.logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg,#a78bfa,#6366f1);
+  color: white;
+  font-weight: 900;
+}
+.icon-button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--panel);
+  color: white;
+  font-size: 20px;
+}
+#chat {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 22px 16px 30px;
+}
+.messages {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 23px;
+}
+.welcome {
+  margin: auto;
+  padding: 45px 10px;
+  text-align: center;
+}
+.welcome-logo {
+  width: 70px;
+  height: 70px;
+  margin: 0 auto 22px;
+  border-radius: 23px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg,#a78bfa,#6366f1);
+  font-size: 35px;
+  font-weight: 900;
+}
+.welcome h1 {
+  margin: 0 0 10px;
+  font-size: clamp(27px,6vw,38px);
+  letter-spacing: -1px;
+}
+.welcome p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+.message {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  animation: appear .18s ease-out;
+}
+@keyframes appear {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 800;
+  background: var(--panel2);
+}
+.message.assistant .avatar {
+  background: linear-gradient(135deg,#a78bfa,#6366f1);
+}
+.message-content {
+  min-width: 0;
+  flex: 1;
+  padding-top: 5px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.message-content p { margin: 0 0 10px; }
+.message-content p:last-child { margin-bottom: 0; }
+.message.user .message-content {
+  background: #25262d;
+  border: 1px solid #303138;
+  border-radius: 17px;
+  padding: 11px 14px;
+  flex: initial;
+  max-width: 90%;
+}
+.message.user { justify-content: flex-end; }
+.message.user .avatar { display: none; }
+.message.user .message-content { order: -1; }
+.message-content pre {
+  background: #0b0c0f;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  overflow-x: auto;
+  white-space: pre;
+}
+.message-content code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: .9em;
+}
+.message-content img {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  border-radius: 14px;
+  margin-top: 12px;
+}
+.image-actions {
+  display: flex;
+  gap: 9px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.small-button {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: var(--panel);
+  color: var(--text);
+}
+.composer-wrap {
+  flex-shrink: 0;
+  padding: 10px 14px calc(13px + env(safe-area-inset-bottom));
+  background: linear-gradient(transparent,var(--bg) 15%);
+}
+.composer {
+  max-width: 800px;
+  margin: 0 auto;
+  border: 1px solid #393a43;
+  border-radius: 23px;
+  background: #1c1d22;
+  padding: 10px;
+  box-shadow: 0 8px 35px #0002;
+}
+#prompt {
+  width: 100%;
+  min-height: 42px;
+  max-height: 160px;
+  resize: none;
+  border: 0;
+  outline: 0;
+  color: white;
+  background: transparent;
+  padding: 8px 8px 5px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+#prompt::placeholder { color: #999aa5; }
+.composer-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 5px;
+}
+#style {
+  min-width: 0;
+  max-width: 155px;
+  background: #292a31;
+  border: 1px solid #3b3c45;
+  border-radius: 12px;
+  color: white;
+  padding: 9px 8px;
+  outline: 0;
+  font-size: 13px;
+}
+.spacer { flex: 1; }
+#send {
+  height: 42px;
+  min-width: 44px;
+  border: 0;
+  border-radius: 14px;
+  padding: 0 15px;
+  background: #f5f5f7;
+  color: #17171a;
+  font-size: 20px;
+  font-weight: 800;
+}
+#send:disabled { opacity: .5; cursor: default; }
+#newChat { font-size: 19px; }
+@media (min-width: 700px) {
+  #chat { padding-top: 30px; }
+  .composer-wrap { padding-left: 22px; padding-right: 22px; }
 }
 </style>
 </head>
+
 <body>
-<header>Onur AI</header>
-
-<main id="chat" aria-live="polite"></main>
-
-<form id="composer">
-  <div id="plusWrap">
-    <button id="plusButton" type="button" aria-label="Komutlar">+</button>
-    <div id="menu">
-      <button id="imageCommand" type="button">@gorselolustur</button>
-    </div>
+<header>
+  <div class="brand">
+    <div class="logo">O</div>
+    <span>Onur AI</span>
   </div>
-  <input id="messageInput" placeholder="Mesajını yaz..." autocomplete="off" required>
-  <button id="sendButton" type="submit">Gönder</button>
-</form>
+  <button class="icon-button" id="newChat" title="Yeni sohbet" aria-label="Yeni sohbet">＋</button>
+</header>
+
+<main id="chat">
+  <div class="messages" id="messages">
+    <section class="welcome" id="welcome">
+      <div class="welcome-logo">O</div>
+      <h1>Nasıl yardımcı olabilirim?</h1>
+      <p>Bir şey sor veya hayalindeki görseli tarif et.</p>
+    </section>
+  </div>
+</main>
+
+<div class="composer-wrap">
+  <form class="composer" id="form">
+    <textarea id="prompt" rows="1" placeholder="Onur AI'ya bir şey sor..." autocomplete="off"></textarea>
+    <div class="composer-bottom">
+      <select id="style" aria-label="Görsel stili">
+        <option value="auto">Otomatik stil</option>
+        <option value="realistic">Gerçekçi</option>
+        <option value="cartoon">Çizgi film</option>
+        <option value="3d">3D</option>
+        <option value="anime">Anime</option>
+        <option value="horror">Korku</option>
+        <option value="pixel">Piksel sanatı</option>
+        <option value="sketch">Eskiz</option>
+        <option value="fantasy">Fantastik</option>
+        <option value="watercolor">Suluboya</option>
+      </select>
+      <div class="spacer"></div>
+      <button id="send" type="submit" aria-label="Gönder">↑</button>
+    </div>
+  </form>
+</div>
 
 <script>
-const chat = document.getElementById("chat");
-const form = document.getElementById("composer");
-const input = document.getElementById("messageInput");
-const sendButton = document.getElementById("sendButton");
-const menu = document.getElementById("menu");
+const $ = id => document.getElementById(id);
+const form = $("form");
+const promptBox = $("prompt");
+const messages = $("messages");
+const chat = $("chat");
+const sendButton = $("send");
+const styleSelect = $("style");
 
-document.getElementById("plusButton").addEventListener("click", () => {
-  menu.style.display = menu.style.display === "block" ? "none" : "block";
-});
+let busy = false;
 
-document.getElementById("imageCommand").addEventListener("click", () => {
-  input.value = "@gorselolustur ";
-  input.focus();
-  menu.style.display = "none";
-});
-
-function addMessage(text, role = "assistant") {
-  const element = document.createElement("div");
-  element.className = "message " + role;
-  element.textContent = text;
-  chat.appendChild(element);
+function scrollBottom() {
   chat.scrollTop = chat.scrollHeight;
-  return element;
 }
 
-function safeColor(value, fallback = "#cccccc") {
-  return typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value)
-    ? value
+function removeWelcome() {
+  $("welcome")?.remove();
+}
+
+function addMessage(role, text) {
+  removeWelcome();
+
+  const wrapper = document.createElement("div");
+  wrapper.className = `message ${role}`;
+
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.textContent = role === "assistant" ? "O" : "S";
+
+  const content = document.createElement("div");
+  content.className = "message-content";
+
+  const paragraph = document.createElement("p");
+  paragraph.textContent = text;
+  content.appendChild(paragraph);
+
+  wrapper.append(avatar, content);
+  messages.appendChild(wrapper);
+  scrollBottom();
+
+  return { wrapper, content };
+}
+
+function addImage(content, dataUrl, filename) {
+  const img = document.createElement("img");
+  img.src = dataUrl;
+  img.alt = filename;
+  content.appendChild(img);
+
+  const actions = document.createElement("div");
+  actions.className = "image-actions";
+
+  const download = document.createElement("button");
+  download.className = "small-button";
+  download.textContent = "PNG indir";
+  download.onclick = () => {
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = filename;
+    a.click();
+  };
+
+  const open = document.createElement("button");
+  open.className = "small-button";
+  open.textContent = "Görseli aç";
+  open.onclick = () => window.open(dataUrl, "_blank");
+
+  actions.append(download, open);
+  content.appendChild(actions);
+  scrollBottom();
+}
+
+function safeColor(color, fallback = "#888888") {
+  return typeof color === "string" && /^#[0-9a-fA-F]{6}$/.test(color)
+    ? color
     : fallback;
 }
 
-function num(value, fallback = 0) {
-  const n = Number(value);
-  return Number.isFinite(n) ? Math.max(-512, Math.min(1024, n)) : fallback;
-}
+function renderTemplate(template) {
+  return new Promise((resolve, reject) => {
+    try {
+      const width = 1024;
+      const height = 1024;
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
 
-function escapeXml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas açılamadı.");
 
-function renderLayer(layer) {
-  if (!layer || typeof layer !== "object") return "";
+      ctx.fillStyle = safeColor(template.background, "#ffffff");
+      ctx.fillRect(0, 0, width, height);
 
-  const fill = safeColor(layer.color ?? layer.fill, "#cccccc");
-  const stroke = safeColor(layer.stroke, "#222222");
-  const sw = Math.max(0, Math.min(30, num(layer.strokeWidth, 2)));
+      for (const layer of (template.layers || [])) {
+        ctx.save();
 
-  const common =
-    `fill="${fill}" stroke="${stroke}" stroke-width="${sw}" ` +
-    `stroke-linejoin="round" stroke-linecap="round"`;
+        ctx.globalAlpha = Math.max(
+          0, Math.min(1, Number(layer.opacity ?? 1))
+        );
 
-  switch (layer.type) {
-    case "rect": {
-      const x = num(layer.x);
-      const y = num(layer.y);
-      const width = Math.max(0, num(layer.width));
-      const height = Math.max(0, num(layer.height));
+        ctx.fillStyle = safeColor(layer.color);
+        ctx.strokeStyle = layer.stroke === "none"
+          ? "transparent"
+          : safeColor(layer.stroke);
+        ctx.lineWidth = Math.max(
+          0, Math.min(100, Number(layer.strokeWidth ?? 1))
+        );
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
 
-      return `<rect x="${x}" y="${y}" width="${width}" height="${height}" ${common}/>`;
+        const x = Number(layer.x || 0);
+        const y = Number(layer.y || 0);
+        const w = Number(layer.width || 0);
+        const h = Number(layer.height || 0);
+
+        switch (layer.type) {
+          case "rect":
+            ctx.beginPath();
+            ctx.rect(x, y, w, h);
+            ctx.fill();
+            if (layer.stroke !== "none") ctx.stroke();
+            break;
+
+          case "ellipse":
+            ctx.beginPath();
+            ctx.ellipse(
+              x + w / 2,
+              y + h / 2,
+              Math.abs(w / 2),
+              Math.abs(h / 2),
+              0, 0, Math.PI * 2
+            );
+            ctx.fill();
+            if (layer.stroke !== "none") ctx.stroke();
+            break;
+
+          case "circle":
+            ctx.beginPath();
+            ctx.arc(
+              Number(layer.cx || 0),
+              Number(layer.cy || 0),
+              Math.abs(Number(layer.r || 0)),
+              0, Math.PI * 2
+            );
+            ctx.fill();
+            if (layer.stroke !== "none") ctx.stroke();
+            break;
+
+          case "line":
+            ctx.beginPath();
+            ctx.moveTo(Number(layer.x1 || 0), Number(layer.y1 || 0));
+            ctx.lineTo(Number(layer.x2 || 0), Number(layer.y2 || 0));
+            ctx.stroke();
+            break;
+
+          case "polygon": {
+            const points = Array.isArray(layer.points) ? layer.points : [];
+            if (points.length >= 3) {
+              ctx.beginPath();
+              ctx.moveTo(Number(points[0].x), Number(points[0].y));
+              for (const point of points.slice(1)) {
+                ctx.lineTo(Number(point.x), Number(point.y));
+              }
+              ctx.closePath();
+              ctx.fill();
+              if (layer.stroke !== "none") ctx.stroke();
+            }
+            break;
+          }
+
+          case "path": {
+            if (typeof layer.d === "string" && layer.d.length < 5000) {
+              try {
+                const path = new Path2D(layer.d);
+                ctx.fill(path);
+                if (layer.stroke !== "none") ctx.stroke(path);
+              } catch {}
+            }
+            break;
+          }
+
+          case "text":
+            ctx.font = "bold 32px system-ui, sans-serif";
+            ctx.textBaseline = "top";
+            ctx.fillText(String(layer.text || "").slice(0, 200), x, y, 900);
+            break;
+        }
+
+        ctx.restore();
+      }
+
+      resolve(canvas.toDataURL("image/png"));
+    } catch (error) {
+      reject(error);
     }
-
-    case "ellipse": {
-      const x = num(layer.x);
-      const y = num(layer.y);
-      const width = Math.max(0, num(layer.width));
-      const height = Math.max(0, num(layer.height));
-
-      return `<ellipse cx="${x + width / 2}" cy="${y + height / 2}" rx="${width / 2}" ry="${height / 2}" ${common}/>`;
-    }
-
-    case "circle": {
-      const radius = Math.max(0, num(layer.radius));
-      const cx = layer.cx !== undefined ? num(layer.cx) : num(layer.x) + radius;
-      const cy = layer.cy !== undefined ? num(layer.cy) : num(layer.y) + radius;
-
-      return `<circle cx="${cx}" cy="${cy}" r="${radius}" ${common}/>`;
-    }
-
-    case "line":
-      return `<line x1="${num(layer.x1)}" y1="${num(layer.y1)}" x2="${num(layer.x2)}" y2="${num(layer.y2)}" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round"/>`;
-
-    case "polygon": {
-      if (!Array.isArray(layer.points)) return "";
-
-      const points = layer.points
-        .filter(point => Array.isArray(point) && point.length >= 2)
-        .slice(0, 100)
-        .map(point => `${num(point[0])},${num(point[1])}`)
-        .join(" ");
-
-      if (!points) return "";
-
-      return `<polygon points="${points}" ${common}/>`;
-    }
-
-    case "text":
-      return `<text x="${num(layer.x)}" y="${num(layer.y)}" fill="${fill}" stroke="none" font-size="${Math.max(1, Math.min(100, num(layer.fontSize, 20)))}" font-family="Arial,sans-serif">${escapeXml(layer.text)}</text>`;
-
-    default:
-      return "";
-  }
-}
-
-async function renderPng(plan) {
-  if (!plan || !Array.isArray(plan.layers) || !plan.layers.length) {
-    throw new Error("Çizim planı geçersiz.");
-  }
-
-  const background = safeColor(plan.background, "#ffffff");
-  const layers = plan.layers.slice(0, 120).map(renderLayer).join("");
-
-  if (!layers.trim()) {
-    throw new Error("Çizilecek şekil bulunamadı.");
-  }
-
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">` +
-    `<rect width="512" height="512" fill="${background}"/>${layers}</svg>`;
-
-  const objectUrl = URL.createObjectURL(
-    new Blob([svg], { type: "image/svg+xml;charset=utf-8" })
-  );
-
-  try {
-    const image = new Image();
-    image.src = objectUrl;
-    await image.decode();
-
-    const canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = 512;
-
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Canvas kullanılamıyor.");
-
-    context.fillStyle = background;
-    context.fillRect(0, 0, 512, 512);
-    context.drawImage(image, 0, 0, 512, 512);
-
-    return canvas.toDataURL("image/png");
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
-}
-
-function showImage(container, source) {
-  container.replaceChildren();
-
-  const image = document.createElement("img");
-  image.src = source;
-  image.alt = "Oluşturulan görsel";
-  container.appendChild(image);
-
-  const download = document.createElement("a");
-  download.className = "download";
-  download.href = source;
-  download.download = "onur-ai-gorsel.png";
-  download.textContent = "PNG indir";
-  container.appendChild(download);
-
-  chat.scrollTop = chat.scrollHeight;
-}
-
-async function readResponse(response) {
-  const raw = await response.text();
-  let data;
-
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    throw new Error(`Sunucu yanıtı okunamadı (HTTP ${response.status}).`);
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      [data.error, data.details].filter(Boolean).join(" — ") ||
-      `HTTP ${response.status}`
-    );
-  }
-
-  return data;
-}
-
-async function createImage(prompt, resultBox) {
-  const response = await fetch("/api/drawing-plan", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt })
   });
-
-  const data = await readResponse(response);
-
-  if (!data.plan) {
-    throw new Error("Çizim planı alınamadı.");
-  }
-
-  const png = await renderPng(data.plan);
-  showImage(resultBox, png);
 }
 
-async function sendMessage(message) {
-  sendButton.disabled = true;
-  input.disabled = true;
+async function createImage(prompt) {
+  const message = addMessage("assistant", "Görsel oluşturuluyor...");
+  const { content } = message;
 
   try {
-    const match = message.match(/^@gorselolustur\b([\s\S]*)/i);
+    const response = await fetch("/api/drawing-plan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt,
+        style: styleSelect.value
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Görsel oluşturulamadı.");
+    }
+
+    if (!data.template) {
+      throw new Error("Sunucu geçerli bir çizim şablonu döndürmedi.");
+    }
+
+    const png = await renderTemplate(data.template);
+    content.replaceChildren();
+
+    const title = document.createElement("p");
+    title.textContent = data.template.title || "Oluşturulan görsel";
+    content.appendChild(title);
+
+    addImage(
+      content,
+      png,
+      "onur-ai-gorsel.png"
+    );
+  } catch (error) {
+    content.replaceChildren();
+    const p = document.createElement("p");
+    p.textContent = error.message || "Görsel oluşturulamadı.";
+    content.appendChild(p);
+  }
+}
+
+async function sendChat(prompt) {
+  const message = addMessage("assistant", "");
+  const { content } = message;
+
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: prompt })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Yanıt alınamadı.");
+    }
+
+    content.replaceChildren();
+
+    const p = document.createElement("p");
+    p.textContent = data.reply || "Yanıt oluşturulamadı.";
+    content.appendChild(p);
+  } catch (error) {
+    content.replaceChildren();
+
+    const p = document.createElement("p");
+    p.textContent = error.message || "Bir hata oluştu.";
+    content.appendChild(p);
+  }
+
+  scrollBottom();
+}
+
+async function submitPrompt() {
+  if (busy) return;
+
+  const prompt = promptBox.value.trim();
+  if (!prompt) return;
+
+  busy = true;
+  sendButton.disabled = true;
+
+  addMessage("user", prompt);
+  promptBox.value = "";
+  promptBox.style.height = "auto";
+
+  try {
+    const match = prompt.match(/^@gorselolustur\b\s*([\s\S]*)$/i);
 
     if (match) {
-      addMessage(message, "user");
+      const drawingPrompt = match[1].trim();
 
-      const prompt = match[1].trim();
-
-      if (!prompt) {
-        addMessage("Lütfen bir görsel tarifi yaz.");
-        return;
-      }
-
-      const resultBox = document.createElement("div");
-      resultBox.className = "message assistant image-result";
-      chat.appendChild(resultBox);
-
-      try {
-        await createImage(prompt, resultBox);
-      } catch (error) {
-        resultBox.className = "message assistant error";
-        resultBox.textContent = "Görsel oluşturulamadı: " + error.message;
+      if (!drawingPrompt) {
+        addMessage(
+          "assistant",
+          "Örnek: @gorselolustur uçan bir kedi"
+        );
+      } else {
+        await createImage(drawingPrompt);
       }
     } else {
-      addMessage(message, "user");
-
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message })
-      });
-
-      const data = await readResponse(response);
-      addMessage(data.reply || "Yanıt alınamadı.");
+      await sendChat(prompt);
     }
-  } catch (error) {
-    addMessage("Hata: " + error.message);
   } finally {
+    busy = false;
     sendButton.disabled = false;
-    input.disabled = false;
-    input.focus();
-    chat.scrollTop = chat.scrollHeight;
+    promptBox.focus();
   }
 }
 
-form.addEventListener("submit", async event => {
+form.addEventListener("submit", event => {
   event.preventDefault();
+  submitPrompt();
+});
 
-  const message = input.value.trim();
-  if (!message) return;
+promptBox.addEventListener("input", () => {
+  promptBox.style.height = "auto";
+  promptBox.style.height = Math.min(promptBox.scrollHeight, 160) + "px";
+});
 
-  input.value = "";
-  menu.style.display = "none";
+promptBox.addEventListener("keydown", event => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    submitPrompt();
+  }
+});
 
-  await sendMessage(message);
+$("newChat").addEventListener("click", () => {
+  messages.replaceChildren();
+
+  const welcome = document.createElement("section");
+  welcome.className = "welcome";
+  welcome.id = "welcome";
+
+  const logo = document.createElement("div");
+  logo.className = "welcome-logo";
+  logo.textContent = "O";
+
+  const heading = document.createElement("h1");
+  heading.textContent = "Nasıl yardımcı olabilirim?";
+
+  const paragraph = document.createElement("p");
+  paragraph.textContent = "Bir şey sor veya hayalindeki görseli tarif et.";
+
+  welcome.append(logo, heading, paragraph);
+  messages.appendChild(welcome);
+
+  promptBox.value = "";
+  promptBox.focus();
 });
 </script>
 </body>
