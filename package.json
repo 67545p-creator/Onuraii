@@ -1,7 +1,9 @@
+
 {
   "name": "onur-ai",
   "version": "1.0.0",
-  "main": "server.js",
+  "private": true,
+  "type": "module",
   "scripts": {
     "start": "node server.js"
   },
@@ -10,3 +12,4 @@
     "express": "^5.1.0"
   }
 }
+
