@@ -21,82 +21,69 @@ const ai = process.env.GEMINI_API_KEY
 
 const characters = {
   "Poppy Playtime": [
-    "Huggy Wuggy", "Kissy Missy", "Mommy Long Legs",
-    "Poppy", "CatNap", "DogDay", "Bunzo Bunny",
-    "Boxy Boo", "Yarnaby", "Doey the Doughman",
-    "PJ Pug-a-Pillar", "The Prototype"
+    "Huggy Wuggy", "Kissy Missy", "Mommy Long Legs", "Poppy",
+    "CatNap", "DogDay", "Bunzo Bunny", "Boxy Boo", "Yarnaby",
+    "Doey the Doughman", "PJ Pug-a-Pillar", "The Prototype"
   ],
   "Five Nights at Freddy's": [
-    "Freddy Fazbear", "Bonnie", "Chica", "Foxy",
-    "Golden Freddy", "Springtrap", "Circus Baby",
-    "Ballora", "Puppet", "Lefty", "Glamrock Freddy",
-    "Roxanne Wolf", "Montgomery Gator", "The Mimic"
+    "Freddy Fazbear", "Bonnie", "Chica", "Foxy", "Golden Freddy",
+    "Springtrap", "Circus Baby", "Ballora", "Puppet", "Lefty",
+    "Glamrock Freddy", "Roxanne Wolf", "Montgomery Gator", "The Mimic"
   ],
   "Friday Night Funkin": [
-    "Boyfriend", "Girlfriend", "Pico", "Daddy Dearest",
-    "Mommy Mearest", "Skid", "Pump", "Senpai",
-    "Tankman", "Whitty", "Tricky", "Hex", "Garcello",
-    "Sarvente", "Ruv", "Tabi", "Agoti", "Zardy"
+    "Boyfriend", "Girlfriend", "Pico", "Daddy Dearest", "Mommy Mearest",
+    "Skid", "Pump", "Senpai", "Tankman", "Whitty", "Tricky", "Hex",
+    "Garcello", "Sarvente", "Ruv", "Tabi", "Agoti", "Zardy"
   ],
   "Among Us": [
-    "Red Crewmate", "Blue Crewmate", "Green Crewmate",
-    "Yellow Crewmate", "Black Crewmate", "White Crewmate",
-    "Impostor", "Shapeshifter", "Engineer", "Scientist",
-    "Guardian Angel"
+    "Red Crewmate", "Blue Crewmate", "Green Crewmate", "Yellow Crewmate",
+    "Black Crewmate", "White Crewmate", "Impostor", "Shapeshifter",
+    "Engineer", "Scientist", "Guardian Angel"
   ],
   "Minecraft": [
-    "Steve", "Alex", "Creeper", "Enderman", "Warden",
-    "Zombie", "Skeleton", "Ender Dragon", "Wither",
-    "Iron Golem", "Villager", "Witch", "Blaze",
-    "Ghast", "Piglin", "Herobrine", "Allay", "Sniffer"
+    "Steve", "Alex", "Creeper", "Enderman", "Warden", "Zombie",
+    "Skeleton", "Ender Dragon", "Wither", "Iron Golem", "Villager",
+    "Witch", "Blaze", "Ghast", "Piglin", "Herobrine", "Allay", "Sniffer"
   ],
   "Garten of Banban": [
-    "Banban", "Banbaleena", "Jumbo Josh", "Opila Bird",
-    "Tarta Bird", "Stinger Flynn", "Nabnab",
-    "Nabnaleena", "Captain Fiddles", "Sheriff Toadster",
-    "Slow Seline", "Bittergiggle", "Syringeon"
+    "Banban", "Banbaleena", "Jumbo Josh", "Opila Bird", "Tarta Bird",
+    "Stinger Flynn", "Nabnab", "Nabnaleena", "Captain Fiddles",
+    "Sheriff Toadster", "Slow Seline", "Bittergiggle", "Syringeon"
   ],
   "Sonic": [
-    "Sonic", "Tails", "Knuckles", "Amy Rose", "Shadow",
-    "Silver", "Metal Sonic", "Rouge", "Blaze"
+    "Sonic", "Tails", "Knuckles", "Amy Rose", "Shadow", "Silver",
+    "Metal Sonic", "Rouge", "Blaze"
   ],
   "Super Mario": [
-    "Mario", "Luigi", "Princess Peach", "Bowser",
-    "Yoshi", "Toad", "Rosalina", "Wario", "Waluigi",
-    "Donkey Kong", "King Boo", "Goomba"
+    "Mario", "Luigi", "Princess Peach", "Bowser", "Yoshi", "Toad",
+    "Rosalina", "Wario", "Waluigi", "Donkey Kong", "King Boo", "Goomba"
   ],
   "Pokemon": [
-    "Pikachu", "Eevee", "Charizard", "Mewtwo", "Lucario",
-    "Gengar", "Greninja", "Bulbasaur", "Squirtle",
-    "Charmander", "Snorlax", "Mimikyu"
+    "Pikachu", "Eevee", "Charizard", "Mewtwo", "Lucario", "Gengar",
+    "Greninja", "Bulbasaur", "Squirtle", "Charmander", "Snorlax", "Mimikyu"
   ],
-  "Roblox": [
-    "Noob", "Bacon Hair", "Guest", "Classic Roblox Avatar"
-  ],
+  "Roblox": ["Noob", "Bacon Hair", "Guest", "Classic Roblox Avatar"],
   "Bendy": [
-    "Bendy", "Ink Bendy", "Boris", "Alice Angel",
-    "Ink Demon", "Audrey"
+    "Bendy", "Ink Bendy", "Boris", "Alice Angel", "Ink Demon", "Audrey"
   ],
   "Undertale": [
-    "Sans", "Papyrus", "Frisk", "Chara", "Toriel",
-    "Asgore", "Undyne", "Alphys", "Flowey", "Asriel"
+    "Sans", "Papyrus", "Frisk", "Chara", "Toriel", "Asgore",
+    "Undyne", "Alphys", "Flowey", "Asriel"
   ],
   "Cuphead": [
     "Cuphead", "Mugman", "Ms. Chalice", "The Devil", "King Dice"
   ],
   "Plants vs Zombies": [
-    "Peashooter", "Sunflower", "Wall-nut", "Chomper",
-    "Cherry Bomb", "Zombie", "Conehead Zombie",
-    "Buckethead Zombie", "Gargantuar"
+    "Peashooter", "Sunflower", "Wall-nut", "Chomper", "Cherry Bomb",
+    "Zombie", "Conehead Zombie", "Buckethead Zombie", "Gargantuar"
   ],
   "Horror": [
-    "Granny", "Slendrina", "Slenderman", "Cartoon Cat",
-    "Siren Head", "The Rake", "Hello Neighbor",
-    "Ice Scream"
+    "Granny", "Slendrina", "Slenderman", "Cartoon Cat", "Siren Head",
+    "The Rake", "Hello Neighbor", "Ice Scream"
   ],
   "Brawl Stars": [
-    "Shelly", "Colt", "Spike", "Leon", "Crow", "Nita",
-    "Bull", "Jessie", "Dynamike", "El Primo", "Poco", "Surge"
+    "Shelly", "Colt", "Spike", "Leon", "Crow", "Nita", "Bull",
+    "Jessie", "Dynamike", "El Primo", "Poco", "Surge"
   ],
   "Clash": [
     "Barbarian", "Archer", "Giant", "Wizard", "P.E.K.K.A",
@@ -104,8 +91,7 @@ const characters = {
   ],
   "Other Games": [
     "Fall Guys Bean", "Angry Birds Red", "Terraria Guide",
-    "Hollow Knight", "Subway Surfers Jake",
-    "Geometry Dash Cube"
+    "Hollow Knight", "Subway Surfers Jake", "Geometry Dash Cube"
   ]
 };
 
@@ -116,7 +102,7 @@ const READY_ANSWERS = [
   [/nasılsın/i, "İyiyim, teşekkürler! Sen nasılsın?"],
   [/teşekkürler|sağ ol|sağol/i, "Rica ederim! 😊"],
   [/fnf biliyor musun/i, "Evet! FNF karakterleri hakkında yardımcı olabilirim."],
-  [/among us biliyor musun/i, "Evet! Crewmate ve Impostor karakterlerini tanıyorum."],
+  [/among us biliyor musun/i, "Evet! Among Us karakterlerini tanıyorum."],
   [/minecraft biliyor musun/i, "Evet! Minecraft karakterleri, moblar ve add-on'lar hakkında yardımcı olabilirim."]
 ];
 
@@ -124,8 +110,8 @@ function readyAnswer(message) {
   return READY_ANSWERS.find(([pattern]) => pattern.test(message))?.[1] ?? null;
 }
 
-function parseJson(text) {
-  const cleaned = String(text || "")
+function parseJson(value) {
+  const cleaned = String(value || "")
     .trim()
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```$/, "");
@@ -134,7 +120,7 @@ function parseJson(text) {
   const end = cleaned.lastIndexOf("}");
 
   if (start < 0 || end <= start) {
-    throw new Error("JSON sonucu alınamadı.");
+    throw new Error("Model geçerli JSON döndürmedi.");
   }
 
   return JSON.parse(cleaned.slice(start, end + 1));
@@ -148,11 +134,17 @@ function safeColor(value, fallback = "#cccccc") {
 }
 
 function safeNumber(value, fallback = 0) {
-  const n = Number(value);
-  return Number.isFinite(n) ? Math.max(0, Math.min(512, n)) : fallback;
+  const number = Number(value);
+  return Number.isFinite(number)
+    ? Math.max(-512, Math.min(1024, number))
+    : fallback;
 }
 
 function sanitizePlan(raw) {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Çizim planı geçersiz.");
+  }
+
   const allowed = new Set([
     "rect", "ellipse", "circle", "line", "polygon", "text"
   ]);
@@ -172,15 +164,18 @@ function sanitizePlan(raw) {
         }
       }
 
-      out.color = safeColor(layer.color, "#cccccc");
+      out.color = safeColor(layer.color ?? layer.fill, "#cccccc");
       out.stroke = safeColor(layer.stroke, "#222222");
       out.strokeWidth = safeNumber(layer.strokeWidth, 2);
 
       if (layer.type === "polygon" && Array.isArray(layer.points)) {
         out.points = layer.points
           .slice(0, 100)
-          .filter(p => Array.isArray(p) && p.length >= 2)
-          .map(p => [safeNumber(p[0]), safeNumber(p[1])]);
+          .filter(point => Array.isArray(point) && point.length >= 2)
+          .map(point => [
+            safeNumber(point[0]),
+            safeNumber(point[1])
+          ]);
       }
 
       if (layer.type === "text") {
@@ -191,7 +186,7 @@ function sanitizePlan(raw) {
     });
 
   if (!layers.length) {
-    throw new Error("Çizim için geçerli katman yok.");
+    throw new Error("Çizim için geçerli katman bulunamadı.");
   }
 
   return {
@@ -203,12 +198,20 @@ function sanitizePlan(raw) {
 }
 
 async function generate(prompt) {
-  if (!ai) throw new Error("GEMINI_API_KEY .env dosyasında ayarlanmalı.");
+  if (!ai) {
+    throw new Error("GEMINI_API_KEY .env dosyasında ayarlanmalı.");
+  }
 
-  return ai.models.generateContent({
+  const result = await ai.models.generateContent({
     model: MODEL,
     contents: prompt
   });
+
+  if (!result.text) {
+    throw new Error("Gemini boş yanıt döndürdü.");
+  }
+
+  return result.text;
 }
 
 app.get("/api/health", (_req, res) => {
@@ -233,17 +236,20 @@ app.post("/api/chat", async (req, res) => {
     }
 
     const answer = readyAnswer(message);
-    if (answer) return res.json({ reply: answer });
+    if (answer) {
+      return res.json({ reply: answer });
+    }
 
-    const result = await generate(`
+    const reply = await generate(`
 Sen Onur AI adlı Türkçe konuşan bir asistansın.
 Doğal, anlaşılır ve doğru cevap ver.
-Kullanıcı: ${message}
+Kullanıcı mesajı:
+${message}
 `);
 
-    res.json({ reply: result.text || "Yanıt oluşturulamadı." });
+    res.json({ reply });
   } catch (error) {
-    console.error(error);
+    console.error("Sohbet hatası:", error);
     res.status(500).json({
       error: String(error.message || error).slice(0, 300)
     });
@@ -258,58 +264,40 @@ app.post("/api/drawing-plan", async (req, res) => {
       return res.status(400).json({ error: "Çizim tarifi boş." });
     }
 
-    if (!ai) {
-      return res.status(500).json({ error: "API anahtarı ayarlanmamış." });
-    }
-
-    const characterList = JSON.stringify(characters, null, 2);
-
-    const researchResult = await generate(`
-Karakter tanıma ve görsel araştırma uzmanısın.
-Aşağıdaki karakter listeleri yalnızca isimleri tanımana yardımcı olur:
-${characterList}
+    const research = parseJson(await generate(`
+Bir karakter tasarım uzmanısın.
+Karakter listesi:
+${JSON.stringify(characters)}
 
 Kullanıcının istediği:
 ${userPrompt}
 
-İstenen karakterin bilinen görünüşünü analiz et:
-- Hangi oyundan olduğu ve doğru karakter adı
-- Siluet ve vücut oranları
-- Baş, yüz, göz, ağız ve uzuv ayrıntıları
-- Giysi, aksesuar ve ayırt edici işaretler
-- Ana ve ikincil renkler
-- Çizimde öne çıkarılması gereken ayrıntılar
-
-Kesin bilmediğin ayrıntıları gerçekmiş gibi sunma.
-JSON dışında metin döndürme.
-Şema:
+Karakterin bilinen görünüşünü analiz et: kaynak, siluet, vücut
+oranları, yüz, gözler, ağız, uzuvlar, kıyafet, aksesuar ve renkler.
+Gerçek zamanlı internet araştırması yaptığını iddia etme.
+Yalnızca JSON döndür:
 {
   "name": "karakter adı",
-  "game": "oyun adı veya bilinmiyor",
+  "game": "oyun veya kaynak",
   "silhouette": "görünüş",
-  "details": ["ayrıntı"],
+  "details": ["ayırt edici ayrıntı"],
   "colors": ["#112233"],
-  "style": "istenen çizim stili"
+  "style": "çizim stili"
 }
-`);
+`));
 
-    const research = parseJson(researchResult.text);
-
-    const templateResult = await generate(`
-Karakter için önce BOYASIZ ÇİZİM KALIBI oluştur.
+    const template = parseJson(await generate(`
+512x512 tuvalde karakter için boyasız şekil kalıbı hazırla.
 Araştırma:
 ${JSON.stringify(research)}
 
 Kullanıcı isteği:
 ${userPrompt}
 
-512x512 tuval kullan.
-Baş, gövde, kollar, bacaklar, yüz ve aksesuarları ayrı katmanlar
-olarak tasarla. Katman sırası arkadan öne doğru olsun.
-Ana şekillerin sınır çizgilerini belirgin tut.
-Boyama aşaması için geçici gri veya beyaz dolgular kullan.
-En fazla 120 katman.
-Yalnızca JSON döndür:
+Karakteri kadraja sığdır. Katmanlar arkadan öne sıralansın.
+Baş, gövde, uzuvlar, yüz ve aksesuarları ayrı katmanlar yap.
+En fazla 120 katman. Gri veya beyaz geçici dolgu kullan.
+Yalnızca JSON döndür. Şema:
 {
   "name": "karakter adı",
   "style": "cartoon",
@@ -327,57 +315,76 @@ Yalnızca JSON döndür:
     }
   ]
 }
-İzinli katmanlar: rect, ellipse, circle, line, polygon, text.
-`);
 
-    const template = parseJson(templateResult.text);
+İzinli şekiller:
+rect, ellipse, circle, line, polygon, text.
+
+Koordinatlar:
+rect ve ellipse için x, y, width, height;
+circle için x, y, radius;
+line için x1, y1, x2, y2;
+polygon için points: [[100,100],[150,80],[180,140]];
+text için x, y, text, fontSize.
+`));
 
     if (!Array.isArray(template.layers) || template.layers.length === 0) {
       throw new Error("Karakter kalıbı oluşturulamadı.");
     }
 
-    const coloringResult = await generate(`
-Sen dijital karakter boyama uzmanısın.
-Aşağıda araştırma bilgisi ve boyanmamış kalıp var.
-
+    const colored = parseJson(await generate(`
+Sen karakter boyama uzmanısın.
 Araştırma:
 ${JSON.stringify(research)}
 
 Kalıp:
 ${JSON.stringify(template)}
 
-Görev:
-- Katmanların geometrisini ve sırasını değiştirme.
-- Her parçaya karakterin görünüşüne uygun renk ver.
-- Göz, ağız, kıyafet, gölge ve aksesuar renklerini ayırt et.
-- Çizgi renklerini karaktere uygun koru.
-- Arka planı uygun seç.
-- Katmanları silme ve yeni katman ekleme.
-- Yalnızca güncellenmiş tam JSON döndür.
-`);
+Kalıbı karakterin görünüşüne göre renklendir.
+Katman sayısını, sırasını ve bütün geometrileri aynen koru.
+type, x, y, width, height, radius, x1, y1, x2, y2,
+points, text ve fontSize değerlerini değiştirme.
+Yalnızca color, stroke, strokeWidth ve background değerlerini
+düzenle. Her katmanın rengini ayrı ayrı belirle.
+Yalnızca tam JSON döndür.
+`));
 
-    const colored = parseJson(coloringResult.text);
+    const coloredLayers = Array.isArray(colored.layers)
+      ? colored.layers
+      : [];
 
-    if (!Array.isArray(colored.layers)) {
-      throw new Error("Boyama sonucu geçersiz.");
-    }
+    const mergedLayers = template.layers.map((original, index) => {
+      const paint = coloredLayers[index] || {};
+
+      return {
+        ...original,
+        color: safeColor(
+          paint.color ?? paint.fill,
+          safeColor(original.color, "#cccccc")
+        ),
+        stroke: safeColor(
+          paint.stroke,
+          safeColor(original.stroke, "#222222")
+        ),
+        strokeWidth: original.strokeWidth ?? 2
+      };
+    });
 
     const plan = sanitizePlan({
       ...template,
-      ...colored,
-      layers: template.layers.map((layer, index) => ({
-        ...layer,
-        ...(colored.layers[index] || {}),
-        type: layer.type
-      }))
+      background: safeColor(
+        colored.background,
+        safeColor(template.background, "#ffffff")
+      ),
+      layers: mergedLayers
     });
 
     res.json({
       plan,
-      character: research.name || plan.name
+      character: String(research.name || plan.name)
     });
   } catch (error) {
     console.error("Görsel işlemi:", error);
+
     res.status(500).json({
       error: "Karakter çizimi hazırlanamadı.",
       details: String(error.message || error).slice(0, 300)
