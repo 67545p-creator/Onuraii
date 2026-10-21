@@ -6,16 +6,14 @@ import { fileURLToPath } from "node:url";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const MODEL = "gemini-3.5-flash-lite";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const ai = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
-const CHAT_MODEL = "gemini-3.5-flash-lite";
-const DRAWING_MODEL = "gemini-3.5-flash-lite";
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-app.use(express.json({ limit: "110mb" }));
+app.use(express.json({ limit: "2mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.post("/api/chat", async (req, res) => {
@@ -25,18 +23,8 @@ app.post("/api/chat", async (req, res) => {
     }
 
     const message = String(req.body?.message || "").trim();
-
     if (!message) {
       return res.status(400).json({ error: "Mesaj boş." });
-    }
-
-    const imageMatch = message.match(/^@gorselolustur\s+([\s\S]+)/i);
-
-    if (imageMatch) {
-      return res.json({
-        action: "generate_image",
-        prompt: imageMatch[1].trim()
-      });
     }
 
     const replies = [
@@ -52,7 +40,7 @@ app.post("/api/chat", async (req, res) => {
     }
 
     const result = await ai.models.generateContent({
-      model: CHAT_MODEL,
+      model: MODEL,
       contents: message
     });
 
@@ -60,7 +48,7 @@ app.post("/api/chat", async (req, res) => {
       text: result.text || "Yanıt oluşturulamadı."
     });
   } catch (error) {
-    console.error(error);
+    console.error("Chat error:", error);
     return res.status(500).json({ error: "Yanıt oluşturulamadı." });
   }
 });
@@ -74,7 +62,7 @@ app.post("/api/drawing-plan", async (req, res) => {
     const prompt = String(req.body?.prompt || "").trim();
 
     if (!prompt) {
-      return res.status(400).json({ error: "Tarif boş." });
+      return res.status(400).json({ error: "Görsel tarifi gerekli." });
     }
 
     if (prompt.length > 1000) {
@@ -82,39 +70,86 @@ app.post("/api/drawing-plan", async (req, res) => {
     }
 
     const instruction = `
-Kullanıcı tarifi: ${JSON.stringify(prompt)}
+Kullanıcı tarifi:
+${JSON.stringify(prompt)}
 
-Tarife uygun, renkli ve ayrıntılı 512x512 illüstrasyon çizim planı hazırla.
-Yalnızca geçerli JSON döndür, açıklama veya Markdown yazma.
-Biçim:
+512x512 boyutunda ayrıntılı bir görsel için JSON çizim planı oluştur.
+Yalnızca geçerli JSON döndür. Markdown veya açıklama yazma.
+
+Desteklenen stiller:
+photorealistic, 3d, anime, watercolor, painting, cartoon,
+vector, pixel_art, fantasy, pencil, comic.
+
+Kullanıcı bir stil belirtirse onu seç. Belirtmezse uygun stili seç.
+
+JSON şeması:
 {
-  "background": "#ffffff",
+  "style": "photorealistic",
+  "background": "#d9e5ed",
+  "lighting": {
+    "direction": "upper_left",
+    "intensity": 0.8
+  },
+  "details": {
+    "texture": "fur",
+    "shadows": true,
+    "highlights": true,
+    "depth": true
+  },
   "shapes": [
-    {"type":"ellipse","cx":256,"cy":280,"rx":100,"ry":65,"fill":"#ffaa33","stroke":"#222222","strokeWidth":3},
-    {"type":"circle","cx":256,"cy":180,"r":55,"fill":"#ffaa33","stroke":"#222222","strokeWidth":3},
-    {"type":"path","d":"M 200 200 Q 150 160 175 130","fill":"none","stroke":"#222222","strokeWidth":4}
+    {
+      "type": "ellipse",
+      "cx": 256,
+      "cy": 280,
+      "rx": 100,
+      "ry": 65,
+      "fill": "#ffaa33",
+      "stroke": "#222222",
+      "strokeWidth": 2
+    }
   ]
 }
-15-70 şekil üretmeye çalış. Büyük şekillerden başlayıp küçük ayrıntılara geç.
-Sadece circle, ellipse, rect, line, polygon ve path şekillerini kullan.
-Koordinatları 0-512 arasında tut. Renkleri hex biçiminde ver.
-Path içinde sadece M L H V C S Q T Z komutlarına izin var.
-HTML, script veya başka SVG etiketleri üretme.
+
+Kurallar:
+- Mümkün olduğunca 40-100 şekil üret.
+- Önce arka plan ve büyük nesneleri, sonra ayrıntıları oluştur.
+- Işık, gölge, perspektif, renk geçişleri ve dokuları çizim planına yansıt.
+- Fotoğraf gerçekçiliği istenirse gerçekçi oranlar, ince renk farklılıkları ve doğal gölgeler kullan.
+- 3D istenirse hacim, ışık ve gölgeyi şekillerle göster.
+- Anime, suluboya, çizgi film ve diğer stillerde o stile uygun çizim yap.
+- Şekiller yalnızca circle, ellipse, rect, line, polygon ve path olabilir.
+- Koordinatlar 0-512 aralığında olmalı.
+- Renkler #RRGGBB formatında olmalı.
+- path yalnızca M L H V C S Q T Z komutlarını kullanmalı.
+- Her şeklin gereken sayısal alanlarını doldur.
+- HTML, script, URL veya SVG etiketi üretme.
 `;
 
     const result = await ai.models.generateContent({
-      model: DRAWING_MODEL,
+      model: MODEL,
       contents: instruction,
-      config: { responseMimeType: "application/json" }
+      config: {
+        responseMimeType: "application/json"
+      }
     });
 
     const plan = JSON.parse(result.text || "{}");
 
-    if (!Array.isArray(plan.shapes)) {
-      throw new Error("Geçersiz plan.");
-    }
+    const validStyles = new Set([
+      "photorealistic",
+      "3d",
+      "anime",
+      "watercolor",
+      "painting",
+      "cartoon",
+      "vector",
+      "pixel_art",
+      "fantasy",
+      "pencil",
+      "comic"
+    ]);
 
-    const allowedTypes = new Set([
+    const validTypes = new Set([
       "circle",
       "ellipse",
       "rect",
@@ -123,23 +158,46 @@ HTML, script veya başka SVG etiketleri üretme.
       "path"
     ]);
 
+    if (!Array.isArray(plan.shapes)) {
+      throw new Error("JSON çizim planında shapes dizisi yok.");
+    }
+
     const shapes = plan.shapes
-      .filter(shape => shape && allowedTypes.has(shape.type))
+      .filter(shape =>
+        shape &&
+        validTypes.has(shape.type)
+      )
       .slice(0, 100);
 
     return res.json({
       plan: {
+        style: validStyles.has(plan.style) ? plan.style : "cartoon",
         background:
           typeof plan.background === "string" &&
           /^#[0-9a-fA-F]{6}$/.test(plan.background)
             ? plan.background
             : "#ffffff",
+        lighting: {
+          direction: String(plan.lighting?.direction || "upper_left"),
+          intensity: Math.max(
+            0,
+            Math.min(1, Number(plan.lighting?.intensity) || 0.7)
+          )
+        },
+        details: {
+          texture: String(plan.details?.texture || "smooth").slice(0, 40),
+          shadows: plan.details?.shadows === true,
+          highlights: plan.details?.highlights === true,
+          depth: plan.details?.depth === true
+        },
         shapes
       }
     });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Görsel oluşturulamadı." });
+    console.error("Drawing plan error:", error);
+    return res.status(500).json({
+      error: "Görsel oluşturulamadı. API anahtarını ve model adını kontrol et."
+    });
   }
 });
 
