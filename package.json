@@ -1,7 +1,7 @@
-
 {
   "name": "onur-ai",
-  "version": "3.0.1",
+  "version": "4.2.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "start": "node server.js"
@@ -10,7 +10,7 @@
     "@google/genai": "latest",
     "dotenv": "latest",
     "express": "latest",
-    "sharp": "latest"
+    "sharp": "latest",
+    "ffmpeg-static": "latest"
   }
 }
-
